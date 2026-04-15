@@ -1,0 +1,63 @@
+"""
+Quick-Start Guide für SmartCue
+
+Dies ist eine Schnellanleitung zum Starten der SmartCue-Anwendung.
+"""
+
+=================================================================================
+                         SmartCue Quick-Start
+=================================================================================
+
+1. INSTALLATION DER ABHÄNGIGKEITEN
+----------------------------------
+
+Öffne ein Command Prompt oder PowerShell und navigiere zum SmartCue-Verzeichnis:
+
+    cd C:\Users\<YourUsername>\Projects\private\TaskSense\smartcue
+
+Installiere die Requirements:
+
+    pip install -r requirements.txt
+
+2. STARTEN DER ANWENDUNG
+------------------------
+
+    python main.py
+
+3. ÜBERPRÜFEN DER INSTALLATION
+-------------------------------
+
+Um zu prüfen, ob alles korrekt installiert ist:
+
+    python test_setup.py
+
+4. BUILD ALS .EXE (Optional)
+-----------------------------
+
+Wenn Sie die Anwendung als standalone .exe bauen möchten:
+
+    pip install pyinstaller
+    python build.py
+
+Die .exe wird unter dist/SmartCue.exe erstellt.
+
+=================================================================================
+                         ERSTE SCHRITTE
+=================================================================================
+
+Nach dem Start sehen Sie das Dashboard mit:
+- Aktuelle aktive Anwendung
+- Nutzungsdauer der Anwendung
+- Heutige meistgenutzte Apps
+
+1. Gehen Sie zum "Regeln"-Tab, um Ihre erste Regel zu erstellen
+2. Klicken Sie "Neue Regel"
+3. Geben Sie einen Namen ein (z.B. "Chrome Pause")
+4. Wählen Sie die Bedingung (z.B. "usage_time_greater")
+5. Setzen Sie den Wert (z.B. "120" für 120 Minuten)
+6. Schreiben Sie den Notification-Text
+7. Klicken Sie "OK"
+
+4. Die Regel wird sofort aktiviert und trackt Ihre Anwendung!
+
+Viel Erfolg mit SmartCue!
