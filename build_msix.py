@@ -119,13 +119,29 @@ class MSIXBuilder:
             with open(manifest_src, 'r', encoding='utf-8') as f:
                 manifest_content = f.read()
             
-            # Ersetze Version im Manifest
-            # Format: Version="1.0.0.0"
-            manifest_content = re.sub(
-                r'Version="[^"]*"',
-                f'Version="{self.version_manifest}"',
-                manifest_content
-            )
+            # Ersetze ONLY Version im Identity-Element
+            # Verwende einfaches String-Matching statt Regex, um sicherzugehen
+            # dass nur die Identity-Version geändert wird
+            lines = manifest_content.split('\n')
+            new_lines = []
+            in_identity = False
+            
+            for line in lines:
+                if '<Identity' in line:
+                    in_identity = True
+                if in_identity and 'Version=' in line:
+                    # Ersetze die Version in dieser Zeile
+                    line = re.sub(
+                        r'Version="[^"]*"',
+                        f'Version="{self.version_manifest}"',
+                        line
+                    )
+                    in_identity = False
+                if '/>' in line:
+                    in_identity = False
+                new_lines.append(line)
+            
+            manifest_content = '\n'.join(new_lines)
             
             # Schreibe modifiziertes Manifest
             with open(manifest_dst, 'w', encoding='utf-8') as f:
