@@ -81,12 +81,12 @@ def create_splash_screen(assets_dir: Path):
 
 
 def create_icon(assets_dir: Path, filename: str, size: tuple):
-    """Erstellt ein minimales Icon mit Fokus-Symbol."""
+    """Erstellt ein minimales Icon mit Fokus-Symbol (transparenter Hintergrund)."""
     
     width, height = size
     
-    # Dunkler Hintergrund
-    img = Image.new('RGB', (width, height), color=(15, 15, 25))
+    # Transparenter Hintergrund (RGBA)
+    img = Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     center_x, center_y = width // 2, height // 2
@@ -98,7 +98,7 @@ def create_icon(assets_dir: Path, filename: str, size: tuple):
     for line_width, radius in zip(line_widths, radii):
         draw.ellipse(
             [center_x - radius, center_y - radius, center_x + radius, center_y + radius],
-            outline=(100, 200, 255),
+            outline=(100, 200, 255, 255),
             width=line_width
         )
     
@@ -106,7 +106,7 @@ def create_icon(assets_dir: Path, filename: str, size: tuple):
     point_size = max(1, width // 10)
     draw.ellipse(
         [center_x - point_size, center_y - point_size, center_x + point_size, center_y + point_size],
-        fill=(100, 200, 255)
+        fill=(100, 200, 255, 255)
     )
     
     img.save(assets_dir / filename)
