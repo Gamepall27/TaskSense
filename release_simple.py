@@ -14,18 +14,7 @@ Ergebnis: dist/TaskSense.msix
 
 import subprocess
 import sys
-import time
 from pathlib import Path
-
-
-def print_progress(step: int, total: int, title: str):
-    """Zeigt einen hübschen Progress Bar (persistent, nicht überschrieben)."""
-    percent = (step / total) * 100
-    filled = int(50 * step / total)
-    bar = "█" * filled + "░" * (50 - filled)
-    # Verwendet ANSI Escape Codes um den Progress persistent zu halten
-    # \033[2K löscht die aktuelle Zeile, \033[1A geht eine Zeile nach oben
-    print(f"{title} │{bar}│ {percent:>6.1f}%", flush=True)
 
 
 def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = None):
@@ -36,21 +25,18 @@ def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = Non
     print("=" * 70 + "\n")
     
     project_root = Path(__file__).parent
-    total_steps = 2
     
     # Schritt 1: Baue .exe
-    print("\n📦 Schritt 1: Baue .exe mit PyInstaller...")
+    print("📦 Schritt 1: Baue .exe mit PyInstaller...")
     print("-" * 70)
-    print_progress(0, total_steps, "Gesamt")
     
     try:
         result = subprocess.run([sys.executable, str(project_root / "build.py")], check=False)
         if result.returncode != 0:
             print("❌ .exe Build fehlgeschlagen")
             return False
-        print_progress(1, total_steps, "Gesamt")
     except Exception as e:
-        print(f"\n❌ Fehler: {e}")
+        print(f"❌ Fehler: {e}")
         return False
     
     # Schritt 2: Baue MSIX
@@ -67,9 +53,8 @@ def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = Non
         if result.returncode != 0:
             print("❌ MSIX Build fehlgeschlagen")
             return False
-        print_progress(total_steps, total_steps, "Gesamt")
     except Exception as e:
-        print(f"\n❌ Fehler: {e}")
+        print(f"❌ Fehler: {e}")
         return False
     
     # Erfolg!

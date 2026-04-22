@@ -31,19 +31,37 @@ class MSIXBuilder:
         self.dist_dir = self.project_root / "dist"
         self.assets_dir = self.project_root / "Assets"
         self.output_dir = self.project_root / "dist"
+        self.makeappx = None  # Wird in check_requirements gesetzt
         
     def check_requirements(self):
         """Prüft, ob alle erforderlichen Tools verfügbar sind."""
         print("🔍 Prüfe erforderliche Tools...")
         
-        # Prüfe MakeAppx
-        try:
-            subprocess.run(['MakeAppx', '/?'], capture_output=True, check=True)
-            print("✓ MakeAppx gefunden")
-        except (FileNotFoundError, subprocess.CalledProcessError):
+        # Versuche MakeAppx zu finden
+        makeappx_paths = [
+            "MakeAppx",  # Im PATH
+            "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\MakeAppx.exe",
+            "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.19041.0\\x64\\MakeAppx.exe",
+            "C:\\Program Files\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\MakeAppx.exe",
+        ]
+        
+        makeappx_found = None
+        for path in makeappx_paths:
+            try:
+                result = subprocess.run([path, '/?'], capture_output=True, timeout=5)
+                if result.returncode == 0 or "Usage" in result.stdout.decode() or "Usage" in result.stderr.decode():
+                    makeappx_found = path
+                    print(f"✓ MakeAppx gefunden: {path}")
+                    self.makeappx = path
+                    break
+            except:
+                continue
+        
+        if not makeappx_found:
             print("✗ MakeAppx nicht gefunden!")
-            print("  Installiere das Windows App Packaging Project Extension für Visual Studio")
-            print("  oder verwende: https://github.com/microsoft/makeappx")
+            print("  Bitte installiere das Windows SDK:")
+            print("  https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/")
+            print("  Oder kopiere MakeAppx.exe in den PATH")
             return False
         
         return True
@@ -178,7 +196,7 @@ class MSIXBuilder:
         
         try:
             cmd = [
-                "MakeAppx",
+                self.makeappx,
                 "pack",
                 f"/d", str(self.build_dir),
                 "/p", str(output_msix),
