@@ -19,11 +19,13 @@ from pathlib import Path
 
 
 def print_progress(step: int, total: int, title: str):
-    """Zeigt einen hübschen Progress Bar."""
+    """Zeigt einen hübschen Progress Bar (persistent, nicht überschrieben)."""
     percent = (step / total) * 100
     filled = int(50 * step / total)
     bar = "█" * filled + "░" * (50 - filled)
-    print(f"\r{title} │{bar}│ {percent:>6.1f}%", end="", flush=True)
+    # Verwendet ANSI Escape Codes um den Progress persistent zu halten
+    # \033[2K löscht die aktuelle Zeile, \033[1A geht eine Zeile nach oben
+    print(f"{title} │{bar}│ {percent:>6.1f}%", flush=True)
 
 
 def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = None):
@@ -39,16 +41,14 @@ def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = Non
     # Schritt 1: Baue .exe
     print("\n📦 Schritt 1: Baue .exe mit PyInstaller...")
     print("-" * 70)
+    print_progress(0, total_steps, "Gesamt")
     
     try:
-        print_progress(0, total_steps, "Gesamt")
         result = subprocess.run([sys.executable, str(project_root / "build.py")], check=False)
-        print()  # Neue Zeile nach .exe Build
         if result.returncode != 0:
             print("❌ .exe Build fehlgeschlagen")
             return False
         print_progress(1, total_steps, "Gesamt")
-        print()  # Neue Zeile
     except Exception as e:
         print(f"\n❌ Fehler: {e}")
         return False
@@ -64,12 +64,10 @@ def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = Non
     
     try:
         result = subprocess.run(cmd, check=False)
-        print()  # Neue Zeile nach MSIX Build
         if result.returncode != 0:
             print("❌ MSIX Build fehlgeschlagen")
             return False
         print_progress(total_steps, total_steps, "Gesamt")
-        print()  # Neue Zeile
     except Exception as e:
         print(f"\n❌ Fehler: {e}")
         return False
@@ -77,16 +75,16 @@ def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = Non
     # Erfolg!
     print("\n" + "=" * 70)
     print("✅ MSIX Release erfolgreich!".center(70))
-    print("=" * 70)
+    print("=" * 70 + "\n")
     
     msix_path = project_root / "dist" / "TaskSense.msix"
     if msix_path.exists():
         size = msix_path.stat().st_size / (1024 * 1024)
-        print(f"\n📁 Ausgabe: {msix_path}")
+        print(f"📁 Ausgabe: {msix_path}")
         print(f"   Größe: {size:.1f} MB")
-        print(f"   Version: {version}")
+        print(f"   Version: {version}\n")
     
-    print("\n🚀 Bereit für Microsoft Store Upload!")
+    print("🚀 Bereit für Microsoft Store Upload!")
     print("   1. Partner Center: https://partner.microsoft.com/")
     print("   2. Lade MSIX-Datei hoch")
     print("   3. Durchlaufe Zertifizierung\n")
