@@ -44,14 +44,20 @@ class RulesManagerWidget(QWidget):
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
+
+        self.limit_info_label = QLabel("")
+        self.limit_info_label.setWordWrap(True)
+        self.limit_info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.limit_info_label.setVisible(not self.main_window.product.is_pro)
+        layout.addWidget(self.limit_info_label)
         
         # Button-Leiste (links ausgerichtet)
         button_layout = QHBoxLayout()
         
-        add_btn = QPushButton("➕ Neue Regel")
-        add_btn.setMinimumWidth(120)
-        add_btn.clicked.connect(self._add_rule)
-        button_layout.addWidget(add_btn)
+        self.add_btn = QPushButton("➕ Neue Regel")
+        self.add_btn.setMinimumWidth(120)
+        self.add_btn.clicked.connect(self._add_rule)
+        button_layout.addWidget(self.add_btn)
         
         edit_btn = QPushButton("✏️  Bearbeiten")
         edit_btn.setMinimumWidth(120)
@@ -109,6 +115,23 @@ class RulesManagerWidget(QWidget):
             action_text = self._format_actions(rule.actions)
             action_item = QTableWidgetItem(action_text)
             self.rules_table.setItem(row, 4, action_item)
+
+        self._refresh_limit_state()
+
+    def _refresh_limit_state(self):
+        """Aktualisiert Lite-Hinweise und Button-Status."""
+        if self.main_window.product.is_pro:
+            return
+
+        max_rules = self.main_window.product.max_rules or 0
+        current_count = len(self.main_window.rules)
+        remaining = max(max_rules - current_count, 0)
+
+        self.limit_info_label.setText(
+            f"{current_count}/{max_rules} Regeln belegt. "
+            f"Noch frei: {remaining}. {self.main_window.product.upgrade_pitch}"
+        )
+        self.add_btn.setEnabled(current_count < max_rules)
     
     def _format_conditions(self, conditions) -> str:
         """Formatiert Bedingungen fur Anzeige."""
@@ -130,6 +153,8 @@ class RulesManagerWidget(QWidget):
     
     def _add_rule(self):
         """Öffnet Dialog zum Hinzufügen einer Regel."""
+        if not self.main_window.can_create_rule():
+            return
         from app.models import Rule
         new_rule = Rule()
         dialog = RuleEditorDialog(new_rule, self.main_window)

@@ -1,12 +1,14 @@
 """Haupt-Fenster der Anwendung."""
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QTabWidget, QSystemTrayIcon, QMenu
+    QMainWindow, QWidget, QVBoxLayout, QTabWidget, QSystemTrayIcon, QMenu, QMessageBox
 )
 from PyQt6.QtGui import QIcon, QAction
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 import os
 
+from app import __version__
 from app.core import WindowTracker, UsageTracker, RuleEngine
+from app.product import PRODUCT
 from app.storage import StorageManager
 from app.services import NotificationService
 from app.models import Rule
@@ -29,8 +31,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         """Initialisiert das Hauptfenster."""
         super().__init__()
+        self.product = PRODUCT
         
-        self.setWindowTitle("TaskSense - Intelligentes Reminder-Tool")
+        self.setWindowTitle(f"{self.product.display_name} - Intelligentes Reminder-Tool")
         self.setGeometry(100, 100, 1000, 650)
         
         # Setze App-Icon
@@ -103,7 +106,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(exit_action)
         
         help_menu = menubar.addMenu("Hilfe")
-        about_action = QAction("Über TaskSense", self)
+        about_action = QAction(f"Über {self.product.display_name}", self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
     
@@ -114,7 +117,7 @@ class MainWindow(QMainWindow):
         # Setze Icon für Tray
         tray_icon = create_app_icon(32)
         self.tray_icon.setIcon(tray_icon)
-        self.tray_icon.setToolTip("TaskSense - Intelligentes Reminder-Tool")
+        self.tray_icon.setToolTip(f"{self.product.display_name} - Intelligentes Reminder-Tool")
         
         # Erstelle Tray-Menü
         tray_menu = QMenu()
@@ -306,10 +309,43 @@ class MainWindow(QMainWindow):
         self.rules = self.storage_manager.load_rules()
         self.rules_widget.refresh_list()
     
+    def can_create_rule(self, existing_rule_id: str = None, show_dialog: bool = True) -> bool:
+        """Prüft, ob eine weitere Regel in der aktuellen Edition erlaubt ist."""
+        if self.product.max_rules is None:
+            return True
+
+        if existing_rule_id and any(rule.rule_id == existing_rule_id for rule in self.rules):
+            return True
+
+        if len(self.rules) < self.product.max_rules:
+            return True
+
+        if show_dialog:
+            self.show_pro_upgrade_dialog(
+                "Regel-Limit erreicht",
+                (
+                    f"In {self.product.display_name} sind maximal "
+                    f"{self.product.max_rules} Regeln verfügbar."
+                ),
+            )
+
+        return False
+
+    def show_pro_upgrade_dialog(self, title: str, details: str):
+        """Zeigt einen Upgrade-Hinweis für Lite-Funktionen."""
+        QMessageBox.information(
+            self,
+            title,
+            f"{details}\n\n{self.product.upgrade_pitch}",
+        )
+
     def save_rule(self, rule: Rule):
         """Speichert eine Regel."""
+        if not self.can_create_rule(existing_rule_id=rule.rule_id):
+            return False
         self.storage_manager.save_rule(rule)
         self.reload_rules()
+        return True
     
     def delete_rule(self, rule_id: str):
         """Löscht eine Regel."""
@@ -749,11 +785,10 @@ class MainWindow(QMainWindow):
     
     def _show_about(self):
         """Zeigt About-Dialog."""
-        from PyQt6.QtWidgets import QMessageBox
         QMessageBox.information(
             self,
-            "Über TaskSense",
-            "TaskSense v1.0\n\n"
+            f"Über {self.product.display_name}",
+            f"{self.product.display_name} v{__version__}\n\n"
             "Ein intelligentes Reminder- und Fokus-Tool für Windows.\n\n"
             "(c) 2026"
         )

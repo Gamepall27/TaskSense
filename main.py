@@ -9,10 +9,12 @@ from PyQt6.QtWidgets import QApplication
 from app.gui import MainWindow
 from app.storage import StorageManager
 from app.config import EXAMPLE_RULES
+from app.product import get_product_config
 
 
 def create_example_rules():
     """Erstellt Beispielregeln beim ersten Start."""
+    product = get_product_config()
     storage_manager = StorageManager()
     rules = storage_manager.load_rules()
     
@@ -21,7 +23,11 @@ def create_example_rules():
         from app.models import Rule, RuleCondition, RuleAction
         import uuid
         
-        for example in EXAMPLE_RULES:
+        examples = EXAMPLE_RULES
+        if product.max_rules is not None:
+            examples = EXAMPLE_RULES[:product.max_rules]
+
+        for example in examples:
             rule = Rule(
                 rule_id=str(uuid.uuid4()),
                 name=example['name'],

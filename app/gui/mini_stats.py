@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QBrush, QFont
 
-from app.utils import format_minutes
+from app.utils import format_minutes, create_usage_preview_rows
 
 
 class MiniStatsWindow(QWidget):
@@ -16,7 +16,8 @@ class MiniStatsWindow(QWidget):
         """Initialisiert das Mini-Statistik-Fenster."""
         super().__init__()
         self.main_window = main_window
-        self.setWindowTitle("TaskSense - Statistiken")
+        self.preview_mode = self.main_window.product.statistics_preview_locked
+        self.setWindowTitle(f"{self.main_window.product.display_name} - Statistiken")
         self.setGeometry(1200, 700, 400, 350)
         
         # Setze Window-Properties für schwebendes Fenster
@@ -55,7 +56,7 @@ class MiniStatsWindow(QWidget):
         layout.addWidget(sep)
         
         # Heute-Label
-        today_label = QLabel("Heute")
+        today_label = QLabel("Heute" if not self.preview_mode else "Heute (Vorschau)")
         today_label_font = QFont()
         today_label_font.setPointSize(10)
         today_label_font.setBold(True)
@@ -75,7 +76,7 @@ class MiniStatsWindow(QWidget):
         
         # Gesamtzeit-Label
         layout.addSpacing(5)
-        alltime_label = QLabel("Gesamtzeit (Top 3)")
+        alltime_label = QLabel("Gesamtzeit (Top 3)" if not self.preview_mode else "Gesamtzeit (Vorschau)")
         alltime_label_font = QFont()
         alltime_label_font.setPointSize(10)
         alltime_label_font.setBold(True)
@@ -115,29 +116,47 @@ class MiniStatsWindow(QWidget):
         """Aktualisiert die Statistiken."""
         # Heute
         daily_stats = self.main_window.usage_tracker.get_daily_stats()
-        sorted_today = sorted(daily_stats.items(), key=lambda x: x[1], reverse=True)[:5]
+        if self.preview_mode:
+            sorted_today = create_usage_preview_rows(daily_stats, max_rows=5)
+        else:
+            sorted_today = sorted(daily_stats.items(), key=lambda x: x[1], reverse=True)[:5]
         
         self.today_table.setRowCount(len(sorted_today))
-        for row, (app_name, minutes) in enumerate(sorted_today):
+        for row, entry in enumerate(sorted_today):
+            if self.preview_mode:
+                app_name, minutes, time_text = entry
+            else:
+                app_name, minutes = entry
+                time_text = format_minutes(minutes)
+
             app_item = QTableWidgetItem(app_name)
             app_item.setForeground(QBrush(QColor(255, 255, 255)))
             self.today_table.setItem(row, 0, app_item)
             
-            time_item = QTableWidgetItem(format_minutes(minutes))
+            time_item = QTableWidgetItem(time_text)
             time_item.setForeground(QBrush(QColor(255, 255, 255)))
             self.today_table.setItem(row, 1, time_item)
         
         # Gesamtzeit
         alltime_stats = self.main_window.storage_manager.get_all_time_stats()
-        sorted_alltime = sorted(alltime_stats.items(), key=lambda x: x[1], reverse=True)[:3]
+        if self.preview_mode:
+            sorted_alltime = create_usage_preview_rows(alltime_stats, max_rows=3)
+        else:
+            sorted_alltime = sorted(alltime_stats.items(), key=lambda x: x[1], reverse=True)[:3]
         
         self.alltime_table.setRowCount(len(sorted_alltime))
-        for row, (app_name, minutes) in enumerate(sorted_alltime):
+        for row, entry in enumerate(sorted_alltime):
+            if self.preview_mode:
+                app_name, minutes, time_text = entry
+            else:
+                app_name, minutes = entry
+                time_text = format_minutes(minutes)
+
             app_item = QTableWidgetItem(app_name)
             app_item.setForeground(QBrush(QColor(255, 255, 255)))
             self.alltime_table.setItem(row, 0, app_item)
             
-            time_item = QTableWidgetItem(format_minutes(minutes))
+            time_item = QTableWidgetItem(time_text)
             time_item.setForeground(QBrush(QColor(255, 255, 255)))
             self.alltime_table.setItem(row, 1, time_item)
     

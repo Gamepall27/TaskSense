@@ -192,6 +192,9 @@ class DashboardWidget(QWidget):
         """Handler: Öffnet Rule-Editor Dialog beim Double-Click auf eine App."""
         from app.gui.rules_manager import RuleEditorDialog
         from app.models import Rule, RuleCondition, RuleAction
+
+        if not self.main_window.can_create_rule():
+            return
         
         # Hole App-Name aus der ersten Spalte
         row = item.row()
