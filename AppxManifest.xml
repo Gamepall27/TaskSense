@@ -5,8 +5,8 @@
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
          xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10">
   
-  <Identity Name="Gamepall27.TaskSense"
-            Publisher="CN=Gamepall27"
+  <Identity Name="Orphelia.TaskSense"
+            Publisher="CN=C54A376D-D56F-4F86-AC25-A9D2A64FD1F7"
             Version="1.0.0" />
   
   <Properties>
