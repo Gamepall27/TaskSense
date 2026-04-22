@@ -168,7 +168,11 @@ class MSIXBuilder:
                 self._create_placeholder_image(asset_path, asset_name, size)
     
     def _create_placeholder_image(self, path: Path, name: str, size: tuple):
-        """Erstellt ein Platzhalter-PNG-Bild."""
+        """Erstellt ein Platzhalter-PNG-Bild (wenn echtes Asset fehlt)."""
+        print(f"⚠ Asset nicht gefunden: {name}")
+        print(f"  Bitte erstelle oder kopiere {name} in Assets/")
+        print(f"  Größe benötigt: {size[0]}x{size[1]}")
+        
         try:
             from PIL import Image, ImageDraw
             
@@ -186,7 +190,7 @@ class MSIXBuilder:
             draw.text((x, y), text, fill=(255, 255, 255))
             
             img.save(path)
-            print(f"✓ Platzhalter erstellt: {name}")
+            print(f"  → Platzhalter erstellt: {name}")
         except ImportError:
             print(f"⚠ PIL nicht installiert - überspringe {name}")
             print("  Bitte manuell Asset hinzufügen oder: pip install Pillow")
