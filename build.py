@@ -2,24 +2,24 @@
 Build-Skript für TaskSense als standalone .exe mit PyInstaller.
 
 Verwendung:
-    python build.py
-
-Dies erstellt eine standalone .exe Datei unter dist/TaskSense.exe
+    python build.py --edition lite
+    python build.py --edition pro
 """
 
-import subprocess
+import argparse
 import sys
-import os
+
+from build_common import get_product
 
 
-def build_exe():
+def build_exe(edition: str):
     """Erstellt die .exe mit PyInstaller."""
-    
+    product = get_product(edition)
+
     print("=" * 60)
-    print("TaskSense Build-Prozess")
+    print(f"{product.display_name} Build-Prozess")
     print("=" * 60)
-    
-    # Prüfe, ob PyInstaller installiert ist
+
     try:
         import PyInstaller.__main__
     except ImportError:
@@ -27,12 +27,11 @@ def build_exe():
         print("Bitte installieren Sie PyInstaller:")
         print("    pip install pyinstaller")
         sys.exit(1)
-    
-    # Build-Argumente
+
     build_args = [
         "--onefile",
         "--windowed",
-        "--name=TaskSense",
+        f"--name={product.exe_name}",
         "--hidden-import=PyQt6",
         "--hidden-import=PyQt6.QtCore",
         "--hidden-import=PyQt6.QtGui",
@@ -43,28 +42,42 @@ def build_exe():
         "--collect-all=PyQt6",
         "--collect-all=pyqt6",
         "--collect-all=win10toast",
-        "main.py",
+        product.entry_script,
     ]
-    
+
     print("\nStarte Build mit folgenden Optionen:")
     print("pyinstaller " + " ".join(build_args))
     print("\n" + "=" * 60 + "\n")
-    
-    # Führe PyInstaller direkt als Modul aus
+
     try:
         import PyInstaller.__main__
+
         PyInstaller.__main__.run(build_args)
-        
+
         print("\n" + "=" * 60)
         print("Build erfolgreich!")
-        print("Datei: dist/TaskSense.exe")
+        print(f"Datei: dist/{product.exe_name}.exe")
         print("=" * 60)
-    except Exception as e:
+    except Exception as error:
         print("\n" + "=" * 60)
-        print(f"Build fehlgeschlagen: {e}")
+        print(f"Build fehlgeschlagen: {error}")
         print("=" * 60)
         sys.exit(1)
 
 
+def main():
+    """CLI-Einstiegspunkt."""
+    parser = argparse.ArgumentParser(description="Baue TaskSense Lite oder Pro als .exe")
+    parser.add_argument(
+        "--edition",
+        choices=("lite", "pro"),
+        default="pro",
+        help="Zu bauende Produktedition",
+    )
+    args = parser.parse_args()
+
+    build_exe(args.edition)
+
+
 if __name__ == "__main__":
-    build_exe()
+    main()
