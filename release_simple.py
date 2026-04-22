@@ -14,34 +14,48 @@ Ergebnis: dist/TaskSense.msix
 
 import subprocess
 import sys
+import time
 from pathlib import Path
+
+
+def print_progress(step: int, total: int, title: str):
+    """Zeigt einen hübschen Progress Bar."""
+    percent = (step / total) * 100
+    filled = int(50 * step / total)
+    bar = "█" * filled + "░" * (50 - filled)
+    print(f"\r{title} │{bar}│ {percent:>6.1f}%", end="", flush=True)
 
 
 def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = None):
     """Führt den kompletten Release aus."""
     
-    print("\n" + "=" * 60)
-    print("TaskSense MSIX Release Builder".center(60))
-    print("=" * 60 + "\n")
+    print("\n" + "=" * 70)
+    print("🚀 TaskSense MSIX Release Builder".center(70))
+    print("=" * 70 + "\n")
     
     project_root = Path(__file__).parent
+    total_steps = 2
     
     # Schritt 1: Baue .exe
-    print("📦 Schritt 1: Baue .exe mit PyInstaller...")
-    print("-" * 60)
+    print("\n📦 Schritt 1: Baue .exe mit PyInstaller...")
+    print("-" * 70)
     
     try:
+        print_progress(0, total_steps, "Gesamt")
         result = subprocess.run([sys.executable, str(project_root / "build.py")], check=False)
+        print()  # Neue Zeile nach .exe Build
         if result.returncode != 0:
             print("❌ .exe Build fehlgeschlagen")
             return False
+        print_progress(1, total_steps, "Gesamt")
+        print()  # Neue Zeile
     except Exception as e:
-        print(f"❌ Fehler: {e}")
+        print(f"\n❌ Fehler: {e}")
         return False
     
     # Schritt 2: Baue MSIX
     print("\n📦 Schritt 2: Baue MSIX-Paket mit MakeAppx...")
-    print("-" * 60)
+    print("-" * 70)
     
     cmd = [sys.executable, str(project_root / "build_msix.py")]
     
@@ -50,17 +64,20 @@ def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = Non
     
     try:
         result = subprocess.run(cmd, check=False)
+        print()  # Neue Zeile nach MSIX Build
         if result.returncode != 0:
             print("❌ MSIX Build fehlgeschlagen")
             return False
+        print_progress(total_steps, total_steps, "Gesamt")
+        print()  # Neue Zeile
     except Exception as e:
-        print(f"❌ Fehler: {e}")
+        print(f"\n❌ Fehler: {e}")
         return False
     
     # Erfolg!
-    print("\n" + "=" * 60)
-    print("✅ MSIX Release erfolgreich!".center(60))
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print("✅ MSIX Release erfolgreich!".center(70))
+    print("=" * 70)
     
     msix_path = project_root / "dist" / "TaskSense.msix"
     if msix_path.exists():
