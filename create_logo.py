@@ -35,95 +35,78 @@ def create_logo():
     
 
 def create_splash_screen(assets_dir: Path):
-    """Erstellt den SplashScreen (620x300)."""
+    """Erstellt den SplashScreen (620x300) mit minimalem Design."""
     width, height = 620, 300
     
-    # Erstelle Hintergrund mit Gradient (blau zu dunkelblau)
-    img = Image.new('RGB', (width, height), color=(33, 150, 243))
-    
-    # Farbige Bereiche
-    pixels = img.load()
-    for y in range(height):
-        # Gradient von oben nach unten
-        ratio = y / height
-        r = int(33 + (10 - 33) * ratio)
-        g = int(150 + (100 - 150) * ratio)
-        b = int(243 + (200 - 243) * ratio)
-        for x in range(width):
-            pixels[x, y] = (r, g, b)
-    
-    # Zeichne Geometrische Formen
+    # Tiefer Nacht-Hintergrund
+    img = Image.new('RGB', (width, height), color=(15, 15, 25))
     draw = ImageDraw.Draw(img)
     
-    # Weiße Kreis-Elemente links
-    draw.ellipse([20, 50, 120, 150], fill=(255, 255, 255), outline=(200, 200, 200), width=2)
-    draw.ellipse([70, 100, 150, 180], fill=(76, 175, 80), outline=(56, 155, 60), width=2)
+    # Linke Seite: Minimales Fokus-Symbol (konzentrische Kreise)
+    center_x, center_y = 100, 150
     
-    # "T" Symbol (Task-Tracking)
-    draw.rectangle([180, 60, 220, 200], fill=(255, 255, 255), outline=(200, 200, 200), width=2)
-    draw.rectangle([140, 60, 260, 100], fill=(76, 175, 80), outline=(56, 155, 60), width=2)
+    # Drei konzentrische Kreise (Fokus-Metapher)
+    colors = [(100, 200, 255), (80, 180, 255), (60, 160, 255)]
+    sizes = [70, 50, 30]
     
-    # Text
+    for color, size in zip(colors, sizes):
+        draw.ellipse(
+            [center_x - size, center_y - size, center_x + size, center_y + size],
+            outline=color,
+            width=2
+        )
+    
+    # Zentraler Punkt
+    draw.ellipse(
+        [center_x - 8, center_y - 8, center_x + 8, center_y + 8],
+        fill=(100, 200, 255)
+    )
+    
+    # Rechte Seite: Moderner Text
     try:
-        # Versuche eine größere Font zu laden
-        title_font = ImageFont.truetype("arial.ttf", 48)
-        subtitle_font = ImageFont.truetype("arial.ttf", 24)
+        title_font = ImageFont.truetype("arial.ttf", 52)
+        subtitle_font = ImageFont.truetype("arial.ttf", 18)
     except:
-        # Fallback auf default Font
         title_font = ImageFont.load_default()
         subtitle_font = ImageFont.load_default()
     
-    # Titel
-    draw.text((280, 80), "TaskSense", fill=(255, 255, 255), font=title_font)
+    # TaskSense
+    draw.text((220, 100), "TaskSense", fill=(255, 255, 255), font=title_font)
     
-    # Untertitel
-    draw.text((280, 150), "Focus & Tracking", fill=(200, 230, 255), font=subtitle_font)
+    # Untertitel mit Akzentfarbe
+    draw.text((220, 180), "Stay Focused", fill=(100, 200, 255), font=subtitle_font)
     
     img.save(assets_dir / "SplashScreen.png")
     print("✓ SplashScreen erstellt: SplashScreen.png (620x300)")
 
 
 def create_icon(assets_dir: Path, filename: str, size: tuple):
-    """Erstellt ein Icon in der angegebenen Größe."""
+    """Erstellt ein minimales Icon mit Fokus-Symbol."""
     
     width, height = size
     
-    # Erstelle Icon mit Gradient
-    img = Image.new('RGB', (width, height), color=(33, 150, 243))
-    
-    # Farbige Gradient-Bereiche
-    pixels = img.load()
-    for y in range(height):
-        ratio = y / height
-        r = int(33 + (10 - 33) * ratio)
-        g = int(150 + (100 - 150) * ratio)
-        b = int(243 + (200 - 243) * ratio)
-        for x in range(width):
-            pixels[x, y] = (r, g, b)
-    
+    # Dunkler Hintergrund
+    img = Image.new('RGB', (width, height), color=(15, 15, 25))
     draw = ImageDraw.Draw(img)
     
-    # Zeichne "T" Symbol für Task
-    margin = width // 5
-    rect_left = margin
-    rect_top = margin
-    rect_right = width - margin
-    rect_bottom = height - margin
+    center_x, center_y = width // 2, height // 2
     
-    # Vertikaler Balken
-    draw.rectangle(
-        [rect_left + width // 6, rect_top, rect_right - width // 6, rect_bottom],
-        fill=(76, 175, 80),
-        outline=(255, 255, 255),
-        width=1
-    )
+    # Drei konzentrische Kreise für Fokus
+    line_widths = [max(1, width // 25), max(1, width // 30), max(1, width // 35)]
+    radii = [width // 2 - 3, width // 3, width // 5]
     
-    # Horizontaler Balken oben
-    draw.rectangle(
-        [rect_left, rect_top, rect_right, rect_top + height // 4],
-        fill=(255, 193, 7),
-        outline=(255, 255, 255),
-        width=1
+    for line_width, radius in zip(line_widths, radii):
+        draw.ellipse(
+            [center_x - radius, center_y - radius, center_x + radius, center_y + radius],
+            outline=(100, 200, 255),
+            width=line_width
+        )
+    
+    # Zentraler Punkt
+    point_size = max(1, width // 10)
+    draw.ellipse(
+        [center_x - point_size, center_y - point_size, center_x + point_size, center_y + point_size],
+        fill=(100, 200, 255)
     )
     
     img.save(assets_dir / filename)
