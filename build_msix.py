@@ -194,26 +194,54 @@ class MSIXBuilder:
         # Stelle sicher dass output_dir existiert
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
+        # Debug: Prüfe ob Build-Dateien existieren
+        print(f"  Build-Verzeichnis: {self.build_dir}")
+        if not self.build_dir.exists():
+            print(f"  ✗ Build-Verzeichnis existiert nicht!")
+            return False
+        
+        manifest = self.build_dir / "AppxManifest.xml"
+        if not manifest.exists():
+            print(f"  ✗ AppxManifest.xml nicht gefunden: {manifest}")
+            return False
+        
+        assets = self.build_dir / "Assets"
+        if not assets.exists():
+            print(f"  ✗ Assets-Verzeichnis nicht gefunden: {assets}")
+            return False
+        
+        print(f"  ✓ Verzeichnisstruktur OK")
+        
         try:
             cmd = [
                 self.makeappx,
                 "pack",
-                f"/d", str(self.build_dir),
+                "/d", str(self.build_dir),
                 "/p", str(output_msix),
-                "/o",  # Überschreibe vorhandene Datei
+                "/o",
             ]
+            
+            print(f"  Befehl: {' '.join(cmd)}")
             
             result = subprocess.run(cmd, capture_output=True, text=True)
             
             if result.returncode == 0:
                 print(f"✓ MSIX-Paket erstellt: {output_msix}")
-                print(f"  Größe: {output_msix.stat().st_size / (1024*1024):.1f} MB")
+                if output_msix.exists():
+                    size = output_msix.stat().st_size / (1024*1024)
+                    print(f"  Größe: {size:.1f} MB")
                 return True
             else:
-                print(f"✗ MakeAppx Fehler: {result.stderr}")
+                print(f"✗ MakeAppx Fehler ({result.returncode})")
+                if result.stdout:
+                    print(f"  stdout: {result.stdout}")
+                if result.stderr:
+                    print(f"  stderr: {result.stderr}")
                 return False
         except Exception as e:
             print(f"✗ Fehler beim Erstellen des MSIX-Pakets: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def sign_msix(self, cert_path: str = None):
@@ -264,32 +292,38 @@ class MSIXBuilder:
         print("=" * 60)
         
         # Schritt 1: Prüfe Requirements
+        print("\n📋 Schritt 1: Prüfe Requirements...")
         if not self.check_requirements():
             print("\n❌ Build abgebrochen - fehlende Tools")
             return False
         
         # Schritt 2: Erstelle Struktur
+        print("\n📋 Schritt 2: Erstelle Struktur...")
         if not self.create_app_structure():
             print("\n❌ Build abgebrochen - Struktur-Fehler")
             return False
         
         # Schritt 3: Baue .exe
+        print("\n📋 Schritt 3: Baue .exe...")
         if not self.build_exe():
             print("\n❌ Build abgebrochen - .exe Fehler")
             return False
         
         # Schritt 4: Kopiere .exe
+        print("\n📋 Schritt 4: Kopiere .exe...")
         if not self.copy_executable():
             print("\n❌ Build abgebrochen - Copy Fehler")
             return False
         
         # Schritt 5: Erstelle MSIX
+        print("\n📋 Schritt 5: Erstelle MSIX...")
         if not self.create_msix_package():
             print("\n❌ Build abgebrochen - MSIX Fehler")
             return False
         
         # Schritt 6: Signiere (optional)
         if sign:
+            print("\n📋 Schritt 6: Signiere MSIX...")
             if not self.sign_msix(cert_path):
                 print("⚠ Warnung: Signierung fehlgeschlagen")
         
@@ -297,9 +331,6 @@ class MSIXBuilder:
         print("✓ MSIX Build erfolgreich!")
         print("=" * 60)
         print(f"\nAusgabe: {self.output_dir / 'TaskSense.msix'}")
-        print("\nNächste Schritte für Microsoft Store:")
-        print("1. Erstelle Partner Center Konto: https://partner.microsoft.com/")
-        print("2. Registriere App im Partner Center")
         print("3. Lade MSIX hoch")
         print("4. Durchlaufe Zertifizierungsprozess")
         
