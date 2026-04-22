@@ -5,8 +5,8 @@ TaskSense MSIX Release Builder - Simplified Version
 Nutzt existierende build.py und build_msix.py - ohne Umwege!
 
 Verwendung:
-  python release_simple.py
-  python release_simple.py --version 1.0.4
+  python release_simple.py                    # Nutzt Version aus AppxManifest.xml
+  python release_simple.py --version 1.0.4   # Custom-Version
   python release_simple.py --version 1.0.4 --sign --cert certs/cert.pfx
 
 Ergebnis: dist/VERSION/TaskSense.msix (z.B. dist/1.0.4/TaskSense.msix)
@@ -14,17 +14,48 @@ Ergebnis: dist/VERSION/TaskSense.msix (z.B. dist/1.0.4/TaskSense.msix)
 
 import subprocess
 import sys
+import re
 from pathlib import Path
 
 
-def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = None):
+def read_version_from_manifest(project_root: Path) -> str:
+    """Liest die Version aus dem AppxManifest.xml."""
+    manifest_path = project_root / "AppxManifest.xml"
+    
+    if not manifest_path.exists():
+        return "1.0.0"  # Default
+    
+    try:
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Extrahiere Version mit Regex
+        match = re.search(r'Version="([^"]+)"', content)
+        if match:
+            version = match.group(1)
+            # Konvertiere von 4-stellig (1.0.0.0) zu 3-stellig (1.0.0) wenn möglich
+            if version.endswith('.0') and version.count('.') == 3:
+                version = version[:-2]
+            return version
+    except Exception:
+        pass
+    
+    return "1.0.0"  # Default
+
+
+def run_release(version: str = None, sign: bool = False, cert_path: str = None):
     """Führt den kompletten Release aus."""
+    
+    project_root = Path(__file__).parent
+    
+    # Wenn keine Version gegeben, aus Manifest auslesen
+    if not version:
+        version = read_version_from_manifest(project_root)
+        print(f"📖 Version aus AppxManifest.xml gelesen: {version}\n")
     
     print("\n" + "=" * 70)
     print("🚀 TaskSense MSIX Release Builder".center(70))
     print("=" * 70 + "\n")
-    
-    project_root = Path(__file__).parent
     
     # Schritt 1: Baue .exe
     print("📦 Schritt 1: Baue .exe mit PyInstaller...")
@@ -84,9 +115,9 @@ def main():
     
     parser = argparse.ArgumentParser(
         description="TaskSense MSIX Release Builder",
-        epilog="Beispiel: python release_simple.py --version 1.0.1 --sign --cert certs/cert.pfx"
+        epilog="Beispiel: python release_simple.py --version 1.0.4 --sign --cert certs/cert.pfx"
     )
-    parser.add_argument("--version", default="1.0.0", help="Versionsnummer")
+    parser.add_argument("--version", default=None, help="Versionsnummer (wenn nicht angegeben: aus AppxManifest.xml)")
     parser.add_argument("--sign", action="store_true", help="Mit Zertifikat signieren")
     parser.add_argument("--cert", type=str, help="Zertifikat-Pfad (.pfx)")
     

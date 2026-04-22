@@ -16,7 +16,7 @@ Keine komplexen Parameter, keine Hänger.
 ## Verwendung
 
 ```bash
-# Default-Version (1.0.0)
+# Version aus AppxManifest.xml (Standard)
 python release_simple.py
 
 # Custom-Version
@@ -31,6 +31,15 @@ python release_simple.py --version 1.0.4 --sign --cert certs/cert.pfx
 - Version `1.0.4` → `dist/1.0.4/TaskSense.msix`
 
 (Manifest erhält automatisch 4-stellige Version: 1.0.4 → 1.0.4.0)
+
+## Version-Management
+
+Die Version wird wie folgt behandelt:
+
+1. **Ohne --version Flag**: Version wird aus `AppxManifest.xml` gelesen
+2. **Mit --version Flag**: Die angegebene Version wird verwendet
+3. **Im Ordner**: 3-stellige Version (z.B. `dist/1.0.4/`)
+4. **Im Manifest**: 4-stellige Version (z.B. `Version="1.0.4.0"`)
 
 ## Was wird gemacht?
 

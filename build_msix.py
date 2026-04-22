@@ -41,6 +41,32 @@ class MSIXBuilder:
         self.assets_dir = self.project_root / "Assets"
         self.output_dir = self.project_root / "dist" / self.version_input  # Ordner mit Original-Version!
         self.makeappx = None  # Wird in check_requirements gesetzt
+    
+    @staticmethod
+    def read_version_from_manifest(project_root: Path) -> str:
+        """Liest die Version aus dem AppxManifest.xml."""
+        manifest_path = project_root / "AppxManifest.xml"
+        
+        if not manifest_path.exists():
+            return "1.0.0"  # Default
+        
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Extrahiere Version mit Regex
+            # Format: Version="1.0.0.0"
+            match = re.search(r'Version="([^"]+)"', content)
+            if match:
+                version = match.group(1)
+                # Konvertiere von 4-stellig (1.0.0.0) zu 3-stellig (1.0.0) wenn möglich
+                if version.endswith('.0') and version.count('.') == 3:
+                    version = version[:-2]
+                return version
+        except Exception as e:
+            print(f"⚠ Fehler beim Auslesen der Version aus Manifest: {e}")
+        
+        return "1.0.0"  # Default
         
     def check_requirements(self):
         """Prüft, ob alle erforderlichen Tools verfügbar sind."""
@@ -369,14 +395,20 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="Baue TaskSense als MSIX-Paket")
-    parser.add_argument("--version", default="1.0.0", help="Versionsnummer (Format: X.X.X oder X.X.X.X)")
+    parser.add_argument("--version", default=None, help="Versionsnummer (wenn nicht angegeben: aus AppxManifest.xml)")
     parser.add_argument("--sign", action="store_true", help="Digitale Signatur hinzufügen")
     parser.add_argument("--cert", type=str, help="Pfad zum Zertifikat (.pfx)")
     
     args = parser.parse_args()
     
+    # Wenn keine Version gegeben, aus Manifest auslesen
+    version = args.version
+    if not version:
+        version = MSIXBuilder.read_version_from_manifest(Path(__file__).parent)
+        print(f"📖 Version aus AppxManifest.xml gelesen: {version}\n")
+    
     # Übergebe Version so wie eingegeben - Konvertierung passiert in __init__
-    builder = MSIXBuilder(version=args.version)
+    builder = MSIXBuilder(version=version)
     success = builder.build(sign=args.sign, cert_path=args.cert)
     
     sys.exit(0 if success else 1)
