@@ -1,4 +1,4 @@
-SMARTCUE DELIVERY CHECKLIST
+TASKSENSE DELIVERY CHECKLIST
 ============================
 
 PROJECT COMPLETION STATUS: 100% COMPLETE
@@ -89,7 +89,7 @@ WINDOWS-INTEGRATION:
 [✓] Admin-spezifische Optionen vorbereitet
 
 FILE TREE VERIFICATION:
-[✓] smartcue/
+[✓] TaskSense/
     [✓] main.py
     [✓] build.py
     [✓] test_setup.py
@@ -150,7 +150,7 @@ Buildbar zu .exe mit: python build.py
 ========================================
 SUMMARY:
 
-SmartCue ist ein KOMPLETTES, PRODUKTIONSNAHES Windows-Desktop-Anwendung:
+TaskSense ist ein KOMPLETTES, PRODUKTIONSNAHES Windows-Desktop-Anwendung:
 
 ✓ Funktional: Alle MVP-Features implementiert
 ✓ Robust: Error Handling und Fallbacks überall

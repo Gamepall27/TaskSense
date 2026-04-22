@@ -1,4 +1,4 @@
-"""Regel-Datenmodelle für SmartCue."""
+"""Regel-Datenmodelle für TaskSense."""
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict
 from datetime import datetime
@@ -59,7 +59,7 @@ class RuleAction:
 
 @dataclass
 class Rule:
-    """Eine Regel für SmartCue."""
+    """Eine Regel für TaskSense."""
     
     rule_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str = ""

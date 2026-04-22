@@ -1,4 +1,4 @@
-"""Einstellungsmodell für SmartCue."""
+"""Einstellungsmodell für TaskSense."""
 from dataclasses import dataclass, field
 from typing import Dict
 
@@ -9,7 +9,7 @@ class Settings:
     
     tracking_interval_seconds: int = 2
     notifications_enabled: bool = True
-    start_minimized: bool = False
+    start_minimized: bool = True
     theme: str = "light"  # light, dark
     check_for_updates: bool = True
     data_retention_days: int = 90
@@ -35,7 +35,7 @@ class Settings:
         return cls(
             tracking_interval_seconds=data.get('tracking_interval_seconds', 2),
             notifications_enabled=data.get('notifications_enabled', True),
-            start_minimized=data.get('start_minimized', False),
+            start_minimized=data.get('start_minimized', True),
             theme=data.get('theme', 'light'),
             check_for_updates=data.get('check_for_updates', True),
             data_retention_days=data.get('data_retention_days', 90),

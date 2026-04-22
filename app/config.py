@@ -1,4 +1,4 @@
-"""Beispiel-Konfiguration für SmartCue."""
+"""Beispiel-Konfiguration für TaskSense."""
 
 EXAMPLE_RULES = [
     {

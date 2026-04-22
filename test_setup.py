@@ -1,5 +1,5 @@
 """
-Test-Skript für SmartCue.
+Test-Skript für TaskSense.
 
 Dieses Skript prüft, ob alle Abhängigkeiten und Module korrekt installiert sind.
 
@@ -15,7 +15,7 @@ def test_imports():
     """Testet, ob alle Python-Module importierbar sind."""
     
     print("=" * 60)
-    print("SmartCue Dependency Test")
+    print("TaskSense Dependency Test")
     print("=" * 60)
     print()
     

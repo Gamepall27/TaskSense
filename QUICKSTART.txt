@@ -1,19 +1,19 @@
 """
-Quick-Start Guide für SmartCue
+Quick-Start Guide für TaskSense
 
-Dies ist eine Schnellanleitung zum Starten der SmartCue-Anwendung.
+Dies ist eine Schnellanleitung zum Starten der TaskSense-Anwendung.
 """
 
 =================================================================================
-                         SmartCue Quick-Start
+                         TaskSense Quick-Start
 =================================================================================
 
 1. INSTALLATION DER ABHÄNGIGKEITEN
 ----------------------------------
 
-Öffne ein Command Prompt oder PowerShell und navigiere zum SmartCue-Verzeichnis:
+Öffne ein Command Prompt oder PowerShell und navigiere zum TaskSense-Verzeichnis:
 
-    cd C:\Users\<YourUsername>\Projects\private\TaskSense\smartcue
+    cd C:\Users\<YourUsername>\Projects\private\TaskSense\TaskSense
 
 Installiere die Requirements:
 
@@ -39,7 +39,7 @@ Wenn Sie die Anwendung als standalone .exe bauen möchten:
     pip install pyinstaller
     python build.py
 
-Die .exe wird unter dist/SmartCue.exe erstellt.
+Die .exe wird unter dist/TaskSense.exe erstellt.
 
 =================================================================================
                          ERSTE SCHRITTE
@@ -60,4 +60,4 @@ Nach dem Start sehen Sie das Dashboard mit:
 
 4. Die Regel wird sofort aktiviert und trackt Ihre Anwendung!
 
-Viel Erfolg mit SmartCue!
+Viel Erfolg mit TaskSense!

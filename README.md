@@ -1,8 +1,8 @@
-# SmartCue - Intelligentes Reminder- und Fokus-Tool fur Windows
+# TaskSense - Intelligentes Reminder- und Fokus-Tool fur Windows
 
 ## Ubersicht
 
-**SmartCue** ist eine Windows-Desktop-Anwendung, die dich intelligente Erinnerungen gibt. Im Gegensatz zu klassischen Reminder-Tools erkennt SmartCue not nur feste Uhrzeiten, sondern auch:
+**TaskSense** ist eine Windows-Desktop-Anwendung, die dich intelligente Erinnerungen gibt. Im Gegensatz zu klassischen Reminder-Tools erkennt TaskSense not nur feste Uhrzeiten, sondern auch:
 
 - Welche Programme du gerade nutzt
 - Wie lange du an einem Programm arbeitet
@@ -61,7 +61,7 @@ Basierend auf diesen Daten zeigt die App dir smart platzierte Erinnerungen. Zum 
 1. **Repository klonen oder Dateien herunterladen**
 
 ```bash
-cd smartcue
+cd TaskSense
 ```
 
 2. **Virtuelle Umgebung erstellen (empfohlen)**
@@ -152,7 +152,7 @@ Cooldown: 30 Minuten
 ## Projektstruktur
 
 ```
-smartcue/
+TaskSense/
 ├── main.py                      # Einstiegspunkt
 ├── requirements.txt             # Python-Abhangigkeiten
 ├── README.md                    # Diese Datei
@@ -202,20 +202,20 @@ pip install pyinstaller
 ### 2. Build-Befehl
 
 ```bash
-pyinstaller --onefile --windowed --icon=icon.ico --name SmartCue main.py
+pyinstaller --onefile --windowed --icon=icon.ico --name TaskSense main.py
 ```
 
 **Parameter erklart:**
 - `--onefile`: Erstellt eine einzelne .exe anstelle von Ordnern
 - `--windowed`: Keine Konsole (GUI-only)
 - `--icon=icon.ico`: (Optional) Icon for die .exe
-- `--name SmartCue`: Name der ausgegeben .exe
+- `--name TaskSense`: Name der ausgegeben .exe
 
 ### 3. Ergebnis
 
 Nach dem Build findest du die .exe hier:
 ```
-dist/SmartCue.exe
+dist/TaskSense.exe
 ```
 
 Diese .exe kann direkt auf Windows-Systemen ohne Python ausgefuhrt werden.
@@ -224,7 +224,7 @@ Diese .exe kann direkt auf Windows-Systemen ohne Python ausgefuhrt werden.
 
 Falls PyInstaller fehlende Module meldet:
 ```bash
-pyinstaller --onefile --windowed --name SmartCue \
+pyinstaller --onefile --windowed --name TaskSense \
   --hidden-import=PyQt6.QtCore \
   --hidden-import=PyQt6.QtGui \
   --hidden-import=PyQt6.QtWidgets \
@@ -262,11 +262,11 @@ Alle Daten liegen in `data/` als JSON. Du kannst sie direkt bearbeiten oder sich
 
 ## Datenschutz
 
-SmartCue:
+TaskSense:
 - Speichert alle Daten **lokal** auf deinem PC
 - Keine Abhängigkeit zu Cloud oder externen Servern
 - Keine Datenerfassung oder Analytics
-- Datenspeicherort: `smartcue/data/`
+- Datenspeicherort: `TaskSense/data/`
 
 ## Architektur-Highlights
 
@@ -277,6 +277,52 @@ SmartCue:
 - **Storage**: Pluggable Storage-Interface (aktuell JSON, leicht zu SQLite aufrüsten)
 - **Models**: Einfache Dataclasses, serialisierbar
 - **Services**: Notification, Logging, etc.
+
+## Microsoft Store - MSIX Paketierung
+
+TaskSense kann als MSIX-Paket für den Microsoft Store gebaut und hochgeladen werden.
+
+### Schnellstart
+
+```bash
+# Einfacher Build (ohne Signatur)
+python build_msix.py
+
+# Mit digitaler Signatur
+python build_msix.py --sign --cert path/to/certificate.pfx
+```
+
+Oder mit PowerShell:
+```powershell
+.\build_msix.ps1
+.\build_msix.ps1 -Sign -CertPath cert.pfx
+```
+
+### Voraussetzungen
+
+1. **Windows SDK** installiert (MakeAppx Tool)
+2. **PyInstaller** installiert: `pip install pyinstaller`
+3. **Optional**: Zertifikat für digitale Signatur (Partner Center generiert dies)
+
+### Detaillierte Anleitung
+
+Siehe [MSIX_BUILD_GUIDE.md](MSIX_BUILD_GUIDE.md) für:
+- Schritt-für-Schritt Setup
+- Microsoft Store Upload
+- Partner Center Konfiguration
+- Zertifizierungsprozess
+- Fehlerbehebung
+
+### Was wird gebaut?
+
+Das `build_msix.py` Skript:
+1. Erstellt .exe mit PyInstaller
+2. Organisiert Dateien im MSIX-Format
+3. Generiert App-Icons (falls nicht vorhanden)
+4. Paketiert mit MakeAppx
+5. Signiert optional
+
+**Ergebnis**: `dist/TaskSense.msix` (ca. 150-200 MB)
 
 ### Erweiterbarkeit
 

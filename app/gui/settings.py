@@ -1,7 +1,7 @@
 """Einstellungs-Widget."""
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox,
-    QSpinBox, QComboBox, QPushButton, QGroupBox, QMessageBox
+    QSpinBox, QComboBox, QPushButton, QGroupBox, QMessageBox, QScrollArea
 )
 from PyQt6.QtCore import Qt
 
@@ -21,14 +21,34 @@ class SettingsWidget(QWidget):
         self._load_settings()
     
     def _setup_ui(self):
-        """Richtet die UI ein."""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(15)
+        """Richtet die UI mit modernem Design ein."""
+        # Hauptlayout mit ScrollArea
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        # Content Widget
+        content_widget = QWidget()
+        layout = QVBoxLayout(content_widget)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(20)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
+        # Titel
+        title_label = QLabel("Einstellungen")
+        title_font = self.font()
+        title_font.setPointSize(14)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
         
         # Tracking-Bereich
-        tracking_group = QGroupBox("Tracking-Einstellungen")
+        tracking_group = QGroupBox("🕐 Tracking-Einstellungen")
         tracking_layout = QVBoxLayout()
+        tracking_layout.setSpacing(10)
         
         tracking_layout.addWidget(QLabel("Tracking-Intervall (Sekunden):"))
         self.interval_spin = QSpinBox()
@@ -43,6 +63,7 @@ class SettingsWidget(QWidget):
         # Benachrichtigungen
         notification_group = QGroupBox("Benachrichtigungen")
         notification_layout = QVBoxLayout()
+        notification_layout.setSpacing(10)
         
         self.notifications_check = CustomCheckBox("Benachrichtigungen aktiviert")
         self.notifications_check.setChecked(True)
@@ -52,25 +73,28 @@ class SettingsWidget(QWidget):
         layout.addWidget(notification_group)
         
         # Interface
-        ui_group = QGroupBox("Oberflache")
+        ui_group = QGroupBox("🎨 Oberflächendesign")
         ui_layout = QVBoxLayout()
+        ui_layout.setSpacing(10)
         
         ui_layout.addWidget(QLabel("Theme:"))
         self.theme_combo = QComboBox()
         self.theme_combo.addItems(["Light", "Dark"])
         ui_layout.addWidget(self.theme_combo)
         
-        self.start_minimized_check = CustomCheckBox("Mit Windows minimiert starten")
+        self.start_minimized_check = CustomCheckBox("⬇️  Mit Windows minimiert starten")
         ui_layout.addWidget(self.start_minimized_check)
         
         ui_group.setLayout(ui_layout)
         layout.addWidget(ui_group)
         
         # Datenverwaltung
-        data_group = QGroupBox("Datenverwaltung")
+        data_group = QGroupBox("📁 Datenverwaltung")
         data_layout = QVBoxLayout()
+        data_layout.setSpacing(10)
         
-        clear_btn = QPushButton("Alle Daten zurücksetzen")
+        clear_btn = QPushButton("🗑️  Alle Daten zurücksetzen")
+        clear_btn.setObjectName("dangerButton")
         clear_btn.clicked.connect(self._clear_all_data)
         data_layout.addWidget(clear_btn)
         
@@ -80,9 +104,13 @@ class SettingsWidget(QWidget):
         layout.addStretch()
         
         # Save-Button
-        save_btn = QPushButton("Einstellungen speichern")
+        save_btn = QPushButton("💾 Einstellungen speichern")
         save_btn.clicked.connect(self._save_settings)
         layout.addWidget(save_btn)
+        
+        # ScrollArea zusammensetzen
+        scroll.setWidget(content_widget)
+        main_layout.addWidget(scroll)
     
     def _load_settings(self):
         """Ladet die Einstellungen in die UI."""

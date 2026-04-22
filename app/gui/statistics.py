@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QCheckBox, QMessageBox, QScrollArea, QGroupBox, QLabel, QHBoxLayout
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QBrush
+from PyQt6.QtGui import QColor, QBrush, QFont
 
 from app.utils import format_minutes, get_today_date_str
 from app.gui.charts import BarChartWidget, PieChartWidget, HeatmapWidget
@@ -31,14 +31,48 @@ class StatisticsWidget(QWidget):
         self.main_window.update_dashboard.connect(self._on_data_updated)
     
     def _setup_ui(self):
-        """Richtet die UI ein."""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(15, 15, 15, 15)
+        """Richtet die UI ein mit modernem Design."""
+        # Hauptlayout mit ScrollArea
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Settings Button
-        settings_btn = QPushButton("Visualisierungen konfigurieren")
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        # Content Widget
+        content_widget = QWidget()
+        layout = QVBoxLayout(content_widget)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+        
+        # Titel
+        title_label = QLabel("Statistiken & Analysen")
+        title_font = QFont()
+        title_font.setPointSize(14)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+        
+        # Button-Leiste (zentriert)
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        
+        settings_btn = QPushButton("Visualisierungen anpasssen")
+        settings_btn.setMinimumWidth(200)
         settings_btn.clicked.connect(self._open_visualization_settings)
-        layout.addWidget(settings_btn)
+        button_layout.addWidget(settings_btn)
+        
+        reset_btn = QPushButton("🔄 Statistik zurücksetzen")
+        reset_btn.setMinimumWidth(200)
+        reset_btn.setObjectName("dangerButton")
+        reset_btn.clicked.connect(self._reset_all_time_stats)
+        button_layout.addWidget(reset_btn)
+        
+        button_layout.addStretch()
+        layout.addLayout(button_layout)
+        
+        layout.addSpacing(10)
         
         # Tab-Widget
         self.tabs = QTabWidget()
@@ -46,6 +80,8 @@ class StatisticsWidget(QWidget):
         # Tab 1: Heute
         today_widget = QWidget()
         today_layout = QVBoxLayout()
+        today_layout.setSpacing(15)
+        today_layout.setContentsMargins(10, 10, 10, 10)
         
         self.today_bar_chart = BarChartWidget()
         today_layout.addWidget(QLabel("Balkendiagramm - Heute"))
@@ -95,7 +131,6 @@ class StatisticsWidget(QWidget):
         self.today_table = QTableWidget()
         self.today_table.setColumnCount(2)
         self.today_table.setHorizontalHeaderLabels(["App", "Nutzungsdauer"])
-        self.today_table.setMaximumHeight(150)
         details_layout.addWidget(self.today_table)
         
         # Gesamtzeit-Tabelle
@@ -103,7 +138,6 @@ class StatisticsWidget(QWidget):
         self.all_time_table = QTableWidget()
         self.all_time_table.setColumnCount(2)
         self.all_time_table.setHorizontalHeaderLabels(["App", "Gesamtnutzungsdauer"])
-        self.all_time_table.setMaximumHeight(150)
         self.all_time_table.itemDoubleClicked.connect(self._on_app_double_clicked_all_time)
         details_layout.addWidget(self.all_time_table)
         
@@ -112,13 +146,18 @@ class StatisticsWidget(QWidget):
         self.reminders_table = QTableWidget()
         self.reminders_table.setColumnCount(3)
         self.reminders_table.setHorizontalHeaderLabels(["Uhrzeit", "Titel", "Nachricht"])
-        self.reminders_table.setMaximumHeight(150)
         details_layout.addWidget(self.reminders_table)
         
+        details_layout.addStretch()
         details_widget.setLayout(details_layout)
         self.tabs.addTab(details_widget, "Tabellen")
         
         layout.addWidget(self.tabs)
+        layout.addStretch()
+        
+        # ScrollArea zusammensetzen
+        scroll.setWidget(content_widget)
+        main_layout.addWidget(scroll)
     
     def _refresh_statistics(self):
         """Aktualisiert die Statistiken."""
@@ -259,6 +298,26 @@ class StatisticsWidget(QWidget):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.enabled_visualizations = dialog.get_settings()
             self._refresh_statistics()
+    
+    def _reset_all_time_stats(self):
+        """Setzt alle Gesamtstatistiken mit Bestätigungsabfrage zurück."""
+        reply = QMessageBox.warning(
+            self,
+            "Gesamtstatistik zurücksetzen",
+            "Wirklich alle Gesamtstatistiken zurücksetzen?\n\n"
+            "Dies kann nicht rückgängig gemacht werden!",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.main_window.storage_manager.reset_all_time_stats()
+            self._refresh_statistics()
+            QMessageBox.information(
+                self,
+                "Erfolg",
+                "Alle Gesamtstatistiken wurden zurückgesetzt."
+            )
     
     def _on_data_updated(self, app_name: str, process_name: str, usage_minutes: float):
         """Slot: Wird aufgerufen wenn new Daten verfügbar sind."""

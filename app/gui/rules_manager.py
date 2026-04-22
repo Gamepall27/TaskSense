@@ -2,7 +2,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget,
     QTableWidgetItem, QDialog, QLabel, QLineEdit, QComboBox,
-    QSpinBox, QCheckBox, QMessageBox, QDialogButtonBox, QGroupBox
+    QSpinBox, QCheckBox, QMessageBox, QDialogButtonBox, QGroupBox, QScrollArea
 )
 from PyQt6.QtCore import Qt
 
@@ -22,23 +22,45 @@ class RulesManagerWidget(QWidget):
         self.refresh_list()
     
     def _setup_ui(self):
-        """Richtet die UI ein."""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(10)
+        """Richtet die UI mit modernem Design ein."""
+        # Hauptlayout mit ScrollArea
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Buttons
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        # Content Widget
+        content_widget = QWidget()
+        layout = QVBoxLayout(content_widget)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+        
+        # Titel
+        title_label = QLabel("Regeln verwalten")
+        title_font = self.font()
+        title_font.setPointSize(14)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+        
+        # Button-Leiste (links ausgerichtet)
         button_layout = QHBoxLayout()
         
-        add_btn = QPushButton("Neue Regel")
+        add_btn = QPushButton("➕ Neue Regel")
+        add_btn.setMinimumWidth(120)
         add_btn.clicked.connect(self._add_rule)
         button_layout.addWidget(add_btn)
         
-        edit_btn = QPushButton("Bearbeiten")
+        edit_btn = QPushButton("✏️  Bearbeiten")
+        edit_btn.setMinimumWidth(120)
         edit_btn.clicked.connect(self._edit_rule)
         button_layout.addWidget(edit_btn)
         
-        delete_btn = QPushButton("Löschen")
+        delete_btn = QPushButton("🗑️  Löschen")
+        delete_btn.setMinimumWidth(120)
+        delete_btn.setObjectName("dangerButton")
         delete_btn.clicked.connect(self._delete_rule)
         button_layout.addWidget(delete_btn)
         
@@ -55,6 +77,10 @@ class RulesManagerWidget(QWidget):
         # Verbinde Double-Click zum Bearbeiten
         self.rules_table.itemDoubleClicked.connect(self._on_rule_double_clicked)
         layout.addWidget(self.rules_table)
+        
+        # ScrollArea zusammensetzen
+        scroll.setWidget(content_widget)
+        main_layout.addWidget(scroll)
     
     def refresh_list(self):
         """Aktualisiert die Regelliste."""

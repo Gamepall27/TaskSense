@@ -1,6 +1,6 @@
 import sqlite3
 
-conn = sqlite3.connect('smartcue/data/smartcue.db')
+conn = sqlite3.connect('TaskSense/data/tasksense.db')
 cursor = conn.cursor()
 
 # Check tables

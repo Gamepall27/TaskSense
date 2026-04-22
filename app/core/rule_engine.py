@@ -18,10 +18,6 @@ class UsageTracker:
         self.today_usage: dict = {}  # app_name -> timedelta
         self.current_date: Optional[str] = None
         self._lock = threading.Lock()
-        # Grace period: Nach Fokus-Wechsel wird die alte App noch 60 Sekunden weitergezählt
-        self.grace_period_seconds = 60
-        self.app_change_time: Optional[datetime] = None
-        self.last_app_before_change: Optional[str] = None
     
     def update_active_app(self, app_name: Optional[str], process_name: Optional[str]):
         """
@@ -34,20 +30,6 @@ class UsageTracker:
         with self._lock:
             if app_name is None:
                 return
-            
-            # Prüfe, ob die Grace Period noch aktiv ist
-            if self.last_app_before_change and self.app_change_time:
-                elapsed = (datetime.now() - self.app_change_time).total_seconds()
-                if elapsed < self.grace_period_seconds:
-                    # Grace Period noch aktiv - zähle die alte App weiter
-                    if self.last_app_before_change not in self.today_usage:
-                        self.today_usage[self.last_app_before_change] = timedelta()
-                    self.today_usage[self.last_app_before_change] += timedelta(seconds=2)  # 2 Sekunden pro Update
-                    return
-                else:
-                    # Grace Period vorbei - finalisiere die alte App
-                    self.last_app_before_change = None
-                    self.app_change_time = None
             
             # App-Wechsel erkannt
             if self.current_app is not None and self.current_app != app_name:

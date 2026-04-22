@@ -1,10 +1,10 @@
 """
-Build-Skript für SmartCue als standalone .exe mit PyInstaller.
+Build-Skript für TaskSense als standalone .exe mit PyInstaller.
 
 Verwendung:
     python build.py
 
-Dies erstellt eine standalone .exe Datei unter dist/SmartCue.exe
+Dies erstellt eine standalone .exe Datei unter dist/TaskSense.exe
 """
 
 import subprocess
@@ -16,7 +16,7 @@ def build_exe():
     """Erstellt die .exe mit PyInstaller."""
     
     print("=" * 60)
-    print("SmartCue Build-Prozess")
+    print("TaskSense Build-Prozess")
     print("=" * 60)
     
     # Prüfe, ob PyInstaller installiert ist
@@ -32,7 +32,7 @@ def build_exe():
     build_args = [
         "--onefile",
         "--windowed",
-        "--name=SmartCue",
+        "--name=TaskSense",
         "--hidden-import=PyQt6",
         "--hidden-import=PyQt6.QtCore",
         "--hidden-import=PyQt6.QtGui",
@@ -57,7 +57,7 @@ def build_exe():
         
         print("\n" + "=" * 60)
         print("Build erfolgreich!")
-        print("Datei: dist/SmartCue.exe")
+        print("Datei: dist/TaskSense.exe")
         print("=" * 60)
     except Exception as e:
         print("\n" + "=" * 60)

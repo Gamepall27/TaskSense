@@ -1,7 +1,7 @@
-================================ SMARTCUE PROJECT ================================
+================================ TASKSENSE PROJECT ================================
                         Intelligentes Reminder- & Fokus-Tool für Windows
 
-Projektbezeichnung: TaskSense/SmartCue
+Projektbezeichnung: TaskSense
 Version: 1.0.0
 Sprache: Python 3.8+
 Framework: PyQt6
@@ -11,7 +11,7 @@ Zielplattform: Windows 10+
                             PROJEKTSTRUKTUR ÜBERSICHT
 ================================================================================
 
-smartcue/
+TaskSense/
 │
 ├── main.py                          # Haupteinstiegspunkt
 ├── build.py                         # PyInstaller Build-Skript
@@ -28,7 +28,7 @@ smartcue/
 │   ├── reminders.json               # Erinnerungs-Historie
 │   ├── statistics/                  # Tägliche Statistiken
 │   │   └── stats_YYYY-MM-DD.json    # Pro Tag eine Datei
-│   └── smartcue_YYYYMMDD.log        # Debug-Logs
+│   └── tasksense_YYYYMMDD.log        # Debug-Logs
 │
 └── app/                             # Anwendungs-Code
     ├── __init__.py                  # Paket-Init
@@ -108,7 +108,7 @@ Total: ~2000 Zeilen produktiver Python-Code (+ Kommentare)
    - Windows 10+ System
 
 2. ABHÄNGIGKEITEN INSTALLIEREN:
-   cd smartcue
+   cd TaskSense
    pip install -r requirements.txt
 
 3. ANWENDUNG STARTEN:
@@ -225,22 +225,22 @@ A: PyQt6 ist moderner, performanter und sieht professioneller aus.
 Q: Warum nicht SQLite?
 A: JSON ist für MVP ausreichend, schneller zu debuggen. Leicht erweiterbar.
 
-Q: Läuft SmartCue im Hintergrund?
+Q: Läuft TaskSense im Hintergrund?
 A: Ja! Minimieren versteckt es im System-Tray. Tracking läuft weiter.
 
-Q: Ist SmartCue Open-Source?
+Q: Ist TaskSense Open-Source?
 A: Nein, es ist ein Closed-Source MVP für demonstrative Zwecke.
 
-Q: Kann ich SmartCue als .exe verteilen?
-A: Ja! Mit PyInstaller: python build.py → dist/SmartCue.exe
+Q: Kann ich TaskSense als .exe verteilen?
+A: Ja! Mit PyInstaller: python build.py → dist/TaskSense.exe
 
 Q: Welche Windows-Versionen werden unterstützt?
 A: Windows 10+ (Windows 11 optimal). Windows 7 teilweise.
 
-Q: Kann ich SmartCue auf Linux nutzen?
+Q: Kann ich TaskSense auf Linux nutzen?
 A: Nein, es nutzt Windows-spezifische APIs. Portierung möglich aber komplex.
 
-Q: Speichert SmartCue Daten online?
+Q: Speichert TaskSense Daten online?
 A: Nein! Alles ist lokal in data/. Kein Cloud-Sync. Privacy First.
 
 ================================================================================
@@ -251,7 +251,7 @@ STANDALONE .EXE ERSTELLEN:
 
   1. pip install pyinstaller
   2. python build.py
-  3. Ergebnis: dist/SmartCue.exe
+  3. Ergebnis: dist/TaskSense.exe
   4. Diese .exe kann auf beliebige Windows-Maschinen verteilt werden!
 
 GRÖSSE: ~150-200 MB (inkl. Python Runtime)
@@ -289,14 +289,14 @@ SPEICHERVERBRAUCH: ~80-120 MB RAM
 Für Bugs, Feature Requests oder Fragen:
   - Schreiben Sie einen Issue mit:
     ✓ Beschreibung des Problems
-    ✓ Logs aus data/smartcue_*.log
-    ✓ SmartCue Version & Windows Version
+    ✓ Logs aus data/tasksense_*.log
+    ✓ TaskSense Version & Windows Version
     ✓ Reproduzier-Schritte
 
 Entwickler-Dokumentation: Siehe DEVELOPER.md
 
 ================================================================================
-© 2026 SmartCue - Intelligentes Windows Reminder Tool
+© 2026 TaskSense - Intelligentes Windows Reminder Tool
 Lizenz: Proprietär (Nicht Open-Source)
 Status: MVP (v1.0.0) - Production Ready
 ================================================================================

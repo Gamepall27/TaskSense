@@ -1,4 +1,4 @@
-"""JSON und SQLite-basierte Speicherung für SmartCue."""
+"""JSON und SQLite-basierte Speicherung für TaskSense."""
 import json
 import os
 import sqlite3
@@ -24,7 +24,7 @@ class StorageManager:
         self.settings_file = os.path.join(data_dir, "settings.json")
         self.reminders_file = os.path.join(data_dir, "reminders.json")
         self.statistics_dir = os.path.join(data_dir, "statistics")
-        self.db_path = os.path.join(data_dir, "smartcue.db")
+        self.db_path = os.path.join(data_dir, "tasksense.db")
         
         os.makedirs(self.statistics_dir, exist_ok=True)
         
@@ -271,3 +271,30 @@ class StorageManager:
         """Gibt die aggregierten Nutzungsstatistiken über alle Sessions hinweg."""
         # Verwende Datenbankdaten als primäre Quelle
         return self.get_all_time_stats_from_db()
+    
+    def reset_all_time_stats(self):
+        """Setzt alle Gesamtstatistiken und täglichen Statistiken zurück."""
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            
+            # Lösche alle Einträge aus der all_time_usage Tabelle
+            cursor.execute('DELETE FROM all_time_usage')
+            
+            conn.commit()
+            conn.close()
+            
+            # Lösche auch alle täglichen Statistik-Dateien
+            if os.path.exists(self.statistics_dir):
+                for filename in os.listdir(self.statistics_dir):
+                    if filename.startswith('stats_') and filename.endswith('.json'):
+                        file_path = os.path.join(self.statistics_dir, filename)
+                        try:
+                            os.remove(file_path)
+                            print(f"DEBUG: Gelöschte Tages-Statistik: {filename}")
+                        except Exception as e:
+                            print(f"Fehler beim Löschen von {filename}: {e}")
+            
+            print("DEBUG: Alle Gesamtstatistiken und täglichen Statistiken wurden zurückgesetzt")
+        except Exception as e:
+            print(f"Fehler beim Zurücksetzen der Statistiken: {e}")

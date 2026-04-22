@@ -1,4 +1,4 @@
-"""Haupteinstiegspunkt der SmartCue-Anwendung."""
+"""Haupteinstiegspunkt der TaskSense-Anwendung."""
 import sys
 import os
 
@@ -44,7 +44,7 @@ def create_example_rules():
 
 
 def main():
-    """Startet die SmartCue-Anwendung."""
+    """Startet die TaskSense-Anwendung."""
     # Erstelle Beispielregeln wenn nötig
     create_example_rules()
     

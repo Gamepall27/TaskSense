@@ -10,15 +10,17 @@ from app.core import WindowTracker, UsageTracker, RuleEngine
 from app.storage import StorageManager
 from app.services import NotificationService
 from app.models import Rule
+from app.utils.icon_utils import create_app_icon
 
 from .dashboard import DashboardWidget
 from .rules_manager import RulesManagerWidget
 from .statistics import StatisticsWidget
 from .settings import SettingsWidget
+from .mini_stats import MiniStatsWindow
 
 
 class MainWindow(QMainWindow):
-    """Hauptfenster der SmartCue-Anwendung."""
+    """Hauptfenster der TaskSense-Anwendung."""
     
     # Signals
     update_dashboard = pyqtSignal(str, str, float)  # app_name, process_name, usage_minutes
@@ -28,8 +30,15 @@ class MainWindow(QMainWindow):
         """Initialisiert das Hauptfenster."""
         super().__init__()
         
-        self.setWindowTitle("SmartCue - Intelligentes Reminder-Tool")
+        self.setWindowTitle("TaskSense - Intelligentes Reminder-Tool")
         self.setGeometry(100, 100, 1000, 650)
+        
+        # Setze App-Icon
+        app_icon = create_app_icon(64)
+        self.setWindowIcon(app_icon)
+        
+        # Flag für echtes Beenden (nicht nur Minimieren)
+        self._really_closing = False
         
         # Initialisiere Core-Komponenten
         self.storage_manager = StorageManager()
@@ -47,9 +56,16 @@ class MainWindow(QMainWindow):
         self._setup_tray()
         self._setup_tracking()
         
+        # Erstelle Mini-Statistik-Fenster
+        self.mini_stats_window = MiniStatsWindow(self)
+        
         # Wende Einstellungen an
         self.notification_service.set_enabled(self.settings.notifications_enabled)
         self.apply_theme(self.settings.theme)
+        
+        # Starte minimiert wenn Einstellung aktiv ist
+        if self.settings.start_minimized:
+            self.hide()
         
         # Signale verbinden
         self.rule_engine.register_trigger_callback(self._on_rule_triggered)
@@ -83,17 +99,22 @@ class MainWindow(QMainWindow):
         file_menu = menubar.addMenu("Datei")
         
         exit_action = QAction("Beenden", self)
-        exit_action.triggered.connect(self.close)
+        exit_action.triggered.connect(self._quit_app)
         file_menu.addAction(exit_action)
         
         help_menu = menubar.addMenu("Hilfe")
-        about_action = QAction("Über SmartCue", self)
+        about_action = QAction("Über TaskSense", self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
     
     def _setup_tray(self):
         """Richtet das System-Tray ein."""
         self.tray_icon = QSystemTrayIcon(self)
+        
+        # Setze Icon für Tray
+        tray_icon = create_app_icon(32)
+        self.tray_icon.setIcon(tray_icon)
+        self.tray_icon.setToolTip("TaskSense - Intelligentes Reminder-Tool")
         
         # Erstelle Tray-Menü
         tray_menu = QMenu()
@@ -105,7 +126,7 @@ class MainWindow(QMainWindow):
         tray_menu.addSeparator()
         
         exit_action = QAction("Beenden", self)
-        exit_action.triggered.connect(self.close)
+        exit_action.triggered.connect(self._quit_app)
         tray_menu.addAction(exit_action)
         
         self.tray_icon.setContextMenu(tray_menu)
@@ -117,12 +138,53 @@ class MainWindow(QMainWindow):
     def _on_tray_activated(self, reason):
         """Callback für Tray-Icon Aktivierung."""
         from PyQt6.QtWidgets import QSystemTrayIcon
-        if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+        
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:
+            # Linksklick: Mini-Fenster anzeigen
+            if self.mini_stats_window.isVisible():
+                self.mini_stats_window.hide()
+            else:
+                self.mini_stats_window.show()
+                self.mini_stats_window.activateWindow()
+        elif reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+            # Doppelklick: Hauptfenster anzeigen/verstecken
             if self.isVisible():
                 self.hide()
             else:
                 self.showNormal()
                 self.activateWindow()
+    
+    def _quit_app(self):
+        """Beendet die Anwendung."""
+        try:
+            # Stoppe alle Timer zuerst
+            if hasattr(self, 'tracking_timer'):
+                self.tracking_timer.stop()
+            if hasattr(self, 'save_timer'):
+                self.save_timer.stop()
+            
+            # Speichere noch einmal alle Daten
+            self._save_session_data()
+            
+            # Schließe das Mini-Fenster
+            if hasattr(self, 'mini_stats_window') and self.mini_stats_window:
+                try:
+                    self.mini_stats_window.update_timer.stop()
+                except:
+                    pass
+                try:
+                    self.mini_stats_window.close()
+                except:
+                    pass
+            
+            # Setze Flag und beende die Anwendung
+            self._really_closing = True
+            from PyQt6.QtWidgets import QApplication
+            QApplication.quit()
+        except Exception as e:
+            print(f"Fehler beim Beenden: {e}")
+            from PyQt6.QtWidgets import QApplication
+            QApplication.quit()
     
     def _setup_tracking(self):
         """Richtet das Tracking ein."""
@@ -261,281 +323,426 @@ class MainWindow(QMainWindow):
         self.notification_service.set_enabled(settings.notifications_enabled)
     
     def apply_theme(self, theme: str):
-        """Wendet ein Theme an."""
+        """Wendet ein modernes, professionelles Theme an."""
+        # Moderne Farbpalette
+        colors = {
+            'primary': '#4A90E2',      # Hauptblau
+            'primary_hover': '#357ABD',
+            'secondary': '#F39C12',    # Orange-Akzent
+            'danger': '#E74C3C',       # Rot
+            'success': '#27AE60',      # Grün
+            'bg_dark': '#1A1D23',      # Sehr dunkles Grau
+            'bg_card': '#242935',      # Dunkel-Karte
+            'text_light': '#ECEFF1',   # Helles Text
+            'text_muted': '#B0BEC5',   # Gedimmter Text
+            'border': '#384856',       # Rand
+        }
+        
         if theme == "dark":
-            stylesheet = """
-                QMainWindow {
-                    background-color: #2b2b2b;
-                    color: #ffffff;
-                }
-                QWidget {
-                    background-color: #2b2b2b;
-                    color: #ffffff;
-                }
-                QTabBar::tab {
-                    background-color: #1e1e1e;
-                    color: #ffffff;
-                    border: 1px solid #444;
-                    padding: 8px 15px;
-                }
-                QTabBar::tab:selected {
-                    background-color: #3d3d3d;
-                    border: 1px solid #555;
-                }
-                QPushButton {
-                    background-color: #3d3d3d;
-                    color: #ffffff;
-                    border: 1px solid #555;
-                    padding: 8px;
-                    border-radius: 3px;
+            stylesheet = f"""
+                /* ===== MAIN WINDOW ===== */
+                QMainWindow {{
+                    background-color: {colors['bg_dark']};
+                    color: {colors['text_light']};
+                }}
+                
+                QWidget {{
+                    background-color: {colors['bg_dark']};
+                    color: {colors['text_light']};
+                }}
+                
+                /* ===== TABS ===== */
+                QTabWidget::pane {{
+                    border: 0px;
+                    background-color: {colors['bg_dark']};
+                }}
+                
+                QTabBar {{
+                    background-color: {colors['bg_dark']};
+                    border-bottom: 2px solid {colors['border']};
+                }}
+                
+                QTabBar::tab {{
+                    background-color: transparent;
+                    color: {colors['text_muted']};
+                    padding: 12px 20px;
+                    border: 0px;
+                    font-weight: 500;
+                    font-size: 11pt;
+                    margin-right: 5px;
+                }}
+                
+                QTabBar::tab:hover {{
+                    color: {colors['text_light']};
+                    border-bottom: 3px solid {colors['primary']};
+                }}
+                
+                QTabBar::tab:selected {{
+                    color: {colors['primary']};
+                    border-bottom: 3px solid {colors['primary']};
+                }}
+                
+                /* ===== BUTTONS ===== */
+                QPushButton {{
+                    background-color: {colors['primary']};
+                    color: white;
+                    border: 0px;
+                    padding: 10px 20px;
+                    border-radius: 8px;
                     font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #4d4d4d;
-                }
-                QCheckBox {
-                    color: #ffffff;
+                    font-size: 10pt;
+                    min-height: 35px;
+                    margin: 3px;
+                }}
+                
+                QPushButton:hover {{
+                    background-color: {colors['primary_hover']};
+                    border: 2px solid {colors['primary']};
+                    padding: 8px 18px;
+                }}
+                
+                QPushButton:pressed {{
+                    background-color: #2E5AAE;
+                    border: 2px solid {colors['primary']};
+                    padding: 8px 18px;
+                }}
+                
+                QPushButton[flat="false"] {{
+                    background-color: {colors['bg_card']};
+                    color: {colors['text_light']};
+                    border: 2px solid {colors['border']};
+                }}
+                
+                QPushButton[flat="false"]:hover {{
+                    background-color: {colors['border']};
+                    border: 2px solid {colors['primary']};
+                }}
+                
+                /* Danger Buttons */
+                QPushButton#dangerButton {{
+                    background-color: {colors['danger']};
+                }}
+                
+                QPushButton#dangerButton:hover {{
+                    background-color: #C0392B;
+                }}
+                
+                /* ===== LABELS ===== */
+                QLabel {{
+                    color: {colors['text_light']};
+                    font-size: 10pt;
+                }}
+                
+                QLabel#titleLabel {{
+                    font-weight: bold;
+                    font-size: 14pt;
+                    color: {colors['primary']};
+                }}
+                
+                QLabel#subtitleLabel {{
+                    color: {colors['text_muted']};
+                    font-size: 9pt;
+                }}
+                
+                /* ===== INPUTS ===== */
+                QLineEdit, QPlainTextEdit, QTextEdit {{
+                    background-color: {colors['bg_card']};
+                    color: {colors['text_light']};
+                    border: 2px solid {colors['border']};
+                    border-radius: 6px;
+                    padding: 8px;
+                    selection-background-color: {colors['primary']};
+                    font-size: 10pt;
+                }}
+                
+                QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus {{
+                    border: 2px solid {colors['primary']};
+                    background-color: {colors['bg_card']};
+                }}
+                
+                QSpinBox, QDoubleSpinBox {{
+                    background-color: {colors['bg_card']};
+                    color: {colors['text_light']};
+                    border: 2px solid {colors['border']};
+                    border-radius: 6px;
+                    padding: 5px;
+                    selection-background-color: {colors['primary']};
+                }}
+                
+                QSpinBox::up-button, QSpinBox::down-button,
+                QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {{
+                    background-color: {colors['border']};
+                    border: 0px;
+                    width: 20px;
+                }}
+                
+                QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
+                    background-color: {colors['primary']};
+                }}
+                
+                QComboBox {{
+                    background-color: {colors['bg_card']};
+                    color: {colors['text_light']};
+                    border: 2px solid {colors['border']};
+                    border-radius: 6px;
+                    padding: 8px;
+                    font-size: 10pt;
+                }}
+                
+                QComboBox::drop-down {{
+                    background-color: {colors['border']};
+                    border: 0px;
+                    border-radius: 0px 6px 6px 0px;
+                    width: 30px;
+                }}
+                
+                QComboBox QAbstractItemView {{
+                    background-color: {colors['bg_card']};
+                    color: {colors['text_light']};
+                    selection-background-color: {colors['primary']};
+                    border: 1px solid {colors['border']};
+                    border-radius: 6px;
+                }}
+                
+                /* ===== CHECKBOXES ===== */
+                QCheckBox {{
+                    color: {colors['text_light']};
                     spacing: 8px;
-                }
-                QCheckBox::indicator {
+                    font-size: 10pt;
+                }}
+                
+                QCheckBox::indicator {{
                     width: 18px;
                     height: 18px;
-                    background-color: #3d3d3d;
-                    border: 2px solid #555;
-                    border-radius: 3px;
-                }
-                QCheckBox::indicator:checked {
-                    background-color: #0078d4;
-                    border: 2px solid #0078d4;
-                    image: url(checked);
-                }
-                QCheckBox::indicator:hover {
-                    border: 2px solid #777;
-                }
-                QSpinBox, QDoubleSpinBox {
-                    background-color: #3d3d3d;
-                    color: #ffffff;
-                    border: 1px solid #555;
+                    background-color: {colors['bg_card']};
+                    border: 2px solid {colors['border']};
+                    border-radius: 4px;
+                }}
+                
+                QCheckBox::indicator:checked {{
+                    background-color: {colors['primary']};
+                    border: 2px solid {colors['primary']};
+                }}
+                
+                QCheckBox::indicator:hover {{
+                    border: 2px solid {colors['primary']};
+                }}
+                
+                /* ===== TABLES ===== */
+                QTableWidget, QTableView {{
+                    background-color: {colors['bg_dark']};
+                    color: {colors['text_light']};
+                    alternate-background-color: {colors['bg_card']};
+                    gridline-color: {colors['border']};
+                    border: 1px solid {colors['border']};
+                    border-radius: 6px;
+                }}
+                
+                QTableWidget::item, QTableView::item {{
                     padding: 5px;
-                    selection-background-color: #555;
-                }
-                QSpinBox::up-button, QSpinBox::down-button,
-                QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
-                    background-color: #2d2d2d;
-                    border: 1px solid #555;
-                    width: 18px;
-                }
-                QSpinBox::up-button:hover, QSpinBox::down-button:hover,
-                QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
-                    background-color: #3d3d3d;
-                }
-                QComboBox {
-                    background-color: #3d3d3d;
-                    color: #ffffff;
-                    border: 1px solid #555;
-                    padding: 5px;
-                }
-                QComboBox::drop-down {
-                    background-color: #2d2d2d;
-                    border: 1px solid #555;
-                    width: 20px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #3d3d3d;
-                    color: #ffffff;
-                    selection-background-color: #555;
-                }
-                QTableWidget, QTableView {
-                    background-color: #1e1e1e;
-                    color: #ffffff;
-                    alternate-background-color: #2d2d2d;
-                    gridline-color: #444;
-                    border: 1px solid #555;
-                }
-                QTableWidget::item:selected, QTableView::item:selected {
-                    background-color: #555;
-                }
-                QHeaderView::section {
-                    background-color: #3d3d3d;
-                    color: #ffffff;
-                    border: 1px solid #555;
-                    padding: 5px;
-                }
-                QGroupBox {
-                    color: #ffffff;
-                    border: 2px solid #555;
-                    border-radius: 5px;
+                    border-bottom: 1px solid {colors['border']};
+                }}
+                
+                QTableWidget::item:selected, QTableView::item:selected {{
+                    background-color: {colors['primary']};
+                    color: white;
+                }}
+                
+                QHeaderView::section {{
+                    background-color: {colors['bg_card']};
+                    color: {colors['text_light']};
+                    border: 0px;
+                    padding: 8px;
+                    font-weight: bold;
+                    border-right: 1px solid {colors['border']};
+                }}
+                
+                /* ===== GROUPBOX ===== */
+                QGroupBox {{
+                    color: {colors['text_light']};
+                    border: 2px solid {colors['border']};
+                    border-radius: 8px;
                     font-weight: bold;
                     padding: 15px 5px 5px 5px;
                     margin-top: 10px;
-                }
-                QGroupBox::title {
+                    font-size: 11pt;
+                }}
+                
+                QGroupBox::title {{
                     subcontrol-origin: margin;
-                    left: 10px;
+                    left: 15px;
                     padding: 0 5px;
-                    top: -5px;
-                }
-                QLabel {
-                    color: #ffffff;
-                }
-                QLineEdit {
-                    background-color: #3d3d3d;
-                    color: #ffffff;
-                    border: 1px solid #555;
-                    padding: 5px;
-                    selection-background-color: #555;
-                }
-                QScrollBar:vertical {
-                    background-color: #2b2b2b;
+                    top: -8px;
+                    color: {colors['primary']};
+                }}
+                
+                /* ===== SCROLLBARS ===== */
+                QScrollBar:vertical {{
+                    background-color: {colors['bg_dark']};
                     width: 12px;
-                    border: 1px solid #555;
-                }
-                QScrollBar::handle:vertical {
-                    background-color: #555;
+                    border: 0px;
+                }}
+                
+                QScrollBar::handle:vertical {{
+                    background-color: {colors['border']};
                     border-radius: 6px;
                     min-height: 20px;
-                }
-                QScrollBar::handle:vertical:hover {
-                    background-color: #777;
-                }
+                }}
+                
+                QScrollBar::handle:vertical:hover {{
+                    background-color: {colors['primary']};
+                }}
+                
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                    border: 0px;
+                    background: transparent;
+                }}
+                
+                QScrollBar:horizontal {{
+                    background-color: {colors['bg_dark']};
+                    height: 12px;
+                    border: 0px;
+                }}
+                
+                QScrollBar::handle:horizontal {{
+                    background-color: {colors['border']};
+                    border-radius: 6px;
+                    min-width: 20px;
+                }}
+                
+                QScrollBar::handle:horizontal:hover {{
+                    background-color: {colors['primary']};
+                }}
+                
+                /* ===== MENU ===== */
+                QMenuBar {{
+                    background-color: {colors['bg_dark']};
+                    color: {colors['text_light']};
+                    border-bottom: 1px solid {colors['border']};
+                    spacing: 10px;
+                }}
+                
+                QMenuBar::item:selected {{
+                    background-color: {colors['primary']};
+                    color: white;
+                    border-radius: 4px;
+                }}
+                
+                QMenu {{
+                    background-color: {colors['bg_card']};
+                    color: {colors['text_light']};
+                    border: 1px solid {colors['border']};
+                    border-radius: 6px;
+                    padding: 5px 0px;
+                }}
+                
+                QMenu::item:selected {{
+                    background-color: {colors['primary']};
+                    color: white;
+                    padding-left: 20px;
+                    padding-right: 20px;
+                }}
             """
         else:  # light theme
-            stylesheet = """
-                QMainWindow {
-                    background-color: #ffffff;
-                    color: #000000;
-                }
-                QWidget {
-                    background-color: #ffffff;
-                    color: #000000;
-                }
-                QTabBar::tab {
-                    background-color: #f0f0f0;
-                    color: #000000;
-                    border: 1px solid #ddd;
-                    padding: 8px 15px;
-                }
-                QTabBar::tab:selected {
-                    background-color: #ffffff;
-                    border: 1px solid #ddd;
-                    border-bottom: 3px solid #0078d4;
-                }
-                QPushButton {
-                    background-color: #f0f0f0;
-                    color: #000000;
-                    border: 1px solid #ddd;
-                    padding: 8px;
-                    border-radius: 3px;
+            light_colors = {
+                'primary': '#4A90E2',
+                'primary_hover': '#357ABD',
+                'bg_main': '#F8F9FA',
+                'bg_card': '#FFFFFF',
+                'text': '#2C3E50',
+                'text_muted': '#7F8C8D',
+                'border': '#E1E8ED',
+                'danger': '#E74C3C',
+            }
+            
+            stylesheet = f"""
+                QMainWindow {{
+                    background-color: {light_colors['bg_main']};
+                    color: {light_colors['text']};
+                }}
+                
+                QWidget {{
+                    background-color: {light_colors['bg_main']};
+                    color: {light_colors['text']};
+                }}
+                
+                QTabBar {{
+                    background-color: transparent;
+                    border-bottom: 2px solid {light_colors['border']};
+                }}
+                
+                QTabBar::tab {{
+                    background-color: transparent;
+                    color: {light_colors['text_muted']};
+                    padding: 12px 20px;
+                    border: 0px;
+                    font-weight: 500;
+                    font-size: 11pt;
+                }}
+                
+                QTabBar::tab:selected {{
+                    color: {light_colors['primary']};
+                    border-bottom: 3px solid {light_colors['primary']};
+                }}
+                
+                QPushButton {{
+                    background-color: {light_colors['primary']};
+                    color: white;
+                    border: 0px;
+                    padding: 10px 20px;
+                    border-radius: 8px;
                     font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #e0e0e0;
-                }
-                QCheckBox {
-                    color: #000000;
-                    spacing: 8px;
-                }
-                QCheckBox::indicator {
-                    width: 18px;
-                    height: 18px;
-                    background-color: #ffffff;
-                    border: 2px solid #ddd;
-                    border-radius: 3px;
-                }
-                QCheckBox::indicator:checked {
-                    background-color: #0078d4;
-                    border: 2px solid #0078d4;
-                    image: url(checked);
-                }
-                QCheckBox::indicator:hover {
-                    border: 2px solid #999;
-                }
-                QSpinBox, QDoubleSpinBox {
-                    background-color: #ffffff;
-                    color: #000000;
-                    border: 1px solid #ddd;
-                    padding: 5px;
-                    selection-background-color: #ddd;
-                }
-                QSpinBox::up-button, QSpinBox::down-button,
-                QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
-                    background-color: #f0f0f0;
-                    border: 1px solid #ddd;
-                    width: 18px;
-                }
-                QSpinBox::up-button:hover, QSpinBox::down-button:hover,
-                QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
-                    background-color: #e0e0e0;
-                }
-                QComboBox {
-                    background-color: #ffffff;
-                    color: #000000;
-                    border: 1px solid #ddd;
-                    padding: 5px;
-                }
-                QComboBox::drop-down {
-                    background-color: #f0f0f0;
-                    border: 1px solid #ddd;
-                    width: 20px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #ffffff;
-                    color: #000000;
-                    selection-background-color: #ddd;
-                }
-                QTableWidget, QTableView {
-                    background-color: #ffffff;
-                    color: #000000;
-                    alternate-background-color: #f5f5f5;
-                    gridline-color: #ddd;
-                    border: 1px solid #ddd;
-                }
-                QTableWidget::item:selected, QTableView::item:selected {
-                    background-color: #ddd;
-                }
-                QHeaderView::section {
-                    background-color: #f0f0f0;
-                    color: #000000;
-                    border: 1px solid #ddd;
-                    padding: 5px;
-                }
-                QGroupBox {
-                    color: #000000;
-                    border: 2px solid #ddd;
-                    border-radius: 5px;
-                    font-weight: bold;
-                    padding: 15px 5px 5px 5px;
-                    margin-top: 10px;
-                }
-                QGroupBox::title {
-                    subcontrol-origin: margin;
-                    left: 10px;
-                    padding: 0 5px;
-                    top: -5px;
-                }
-                QLabel {
-                    color: #000000;
-                }
-                QLineEdit {
-                    background-color: #ffffff;
-                    color: #000000;
-                    border: 1px solid #ddd;
-                    padding: 5px;
-                    selection-background-color: #ddd;
-                }
-                QScrollBar:vertical {
-                    background-color: #ffffff;
-                    width: 12px;
-                    border: 1px solid #ddd;
-                }
-                QScrollBar::handle:vertical {
-                    background-color: #ddd;
+                    font-size: 10pt;
+                    min-height: 35px;
+                }}
+                
+                QPushButton:hover {{
+                    background-color: {light_colors['primary_hover']};
+                }}
+                
+                QPushButton[flat="false"] {{
+                    background-color: {light_colors['bg_card']};
+                    color: {light_colors['text']};
+                    border: 2px solid {light_colors['border']};
+                }}
+                
+                QPushButton#dangerButton {{
+                    background-color: {light_colors['danger']};
+                }}
+                
+                QPushButton#dangerButton:hover {{
+                    background-color: #C0392B;
+                }}
+                
+                QLabel {{
+                    color: {light_colors['text']};
+                }}
+                
+                QLineEdit, QPlainTextEdit {{
+                    background-color: {light_colors['bg_card']};
+                    color: {light_colors['text']};
+                    border: 2px solid {light_colors['border']};
                     border-radius: 6px;
-                    min-height: 20px;
-                }
-                QScrollBar::handle:vertical:hover {
-                    background-color: #bbb;
-                }
+                    padding: 8px;
+                }}
+                
+                QLineEdit:focus {{
+                    border: 2px solid {light_colors['primary']};
+                }}
+                
+                QTableWidget, QTableView {{
+                    background-color: {light_colors['bg_card']};
+                    color: {light_colors['text']};
+                    alternate-background-color: {light_colors['bg_main']};
+                    gridline-color: {light_colors['border']};
+                    border: 1px solid {light_colors['border']};
+                    border-radius: 6px;
+                }}
+                
+                QTableWidget::item:selected, QTableView::item:selected {{
+                    background-color: {light_colors['primary']};
+                    color: white;
+                }}
             """
         
         self.setStyleSheet(stylesheet)
@@ -545,25 +752,41 @@ class MainWindow(QMainWindow):
         from PyQt6.QtWidgets import QMessageBox
         QMessageBox.information(
             self,
-            "Über SmartCue",
-            "SmartCue v1.0\n\n"
+            "Über TaskSense",
+            "TaskSense v1.0\n\n"
             "Ein intelligentes Reminder- und Fokus-Tool für Windows.\n\n"
             "(c) 2026"
         )
     
     def closeEvent(self, event):
         """Wird aufgerufen, wenn das Fenster geschlossen wird."""
-        # Speichere Sitzungsdaten bevor die App beendet wird
-        self._save_session_data()
-        
-        if self.settings.start_minimized:
-            self.hide()
-            event.ignore()
-        else:
-            self.tracking_timer.stop()
-            if hasattr(self, 'save_timer'):
-                self.save_timer.stop()
+        # Wenn wirklich beenden aufgerufen wurde, beende die App
+        if self._really_closing:
+            try:
+                # Speichere Sitzungsdaten
+                self._save_session_data()
+                
+                # Stoppe alle Timer
+                self.tracking_timer.stop()
+                if hasattr(self, 'save_timer'):
+                    self.save_timer.stop()
+                
+                # Schließe das Mini-Fenster
+                if hasattr(self, 'mini_stats_window') and self.mini_stats_window:
+                    self.mini_stats_window.update_timer.stop()
+                    self.mini_stats_window.close()
+            except Exception as e:
+                print(f"Fehler beim Beenden: {e}")
+            
             event.accept()
+        else:
+            # Minimiere ins Tray statt zu schließen
+            self._save_session_data()
+            self.hide()
+            # Verstecke auch das Mini-Fenster
+            if hasattr(self, 'mini_stats_window') and self.mini_stats_window:
+                self.mini_stats_window.hide()
+            event.ignore()
     
     def changeEvent(self, event):
         """Verwaltet Fenster-Events."""
