@@ -9,7 +9,7 @@ Verwendung:
   python release_simple.py --version 1.0.4
   python release_simple.py --version 1.0.4 --sign --cert certs/cert.pfx
 
-Ergebnis: dist/VERSION/TaskSense.msix (z.B. dist/1.0.4.0/TaskSense.msix)
+Ergebnis: dist/VERSION/TaskSense.msix (z.B. dist/1.0.4/TaskSense.msix)
 """
 
 import subprocess

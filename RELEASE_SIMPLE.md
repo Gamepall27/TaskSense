@@ -16,24 +16,21 @@ Keine komplexen Parameter, keine Hänger.
 ## Verwendung
 
 ```bash
-# Ein Kommand. Fertig.
+# Default-Version (1.0.0)
 python release_simple.py
-```
 
-Das ist alles. Am Ende: `dist/TaskSense.msix`
-
-## Mit Optionen
-
-```bash
-# Mit Versionsnummer
-python release_simple.py --version 1.0.1
+# Custom-Version
+python release_simple.py --version 1.0.4
 
 # Mit Signatur
-python release_simple.py --sign --cert certs/cert.pfx
-
-# Kombiniert
-python release_simple.py --version 1.0.1 --sign --cert certs/cert.pfx
+python release_simple.py --version 1.0.4 --sign --cert certs/cert.pfx
 ```
+
+**Ausgabe:**
+- Version `1.0.0` → `dist/1.0.0/TaskSense.msix`
+- Version `1.0.4` → `dist/1.0.4/TaskSense.msix`
+
+(Manifest erhält automatisch 4-stellige Version: 1.0.4 → 1.0.4.0)
 
 ## Was wird gemacht?
 

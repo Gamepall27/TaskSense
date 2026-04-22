@@ -28,11 +28,18 @@ class MSIXBuilder:
     
     def __init__(self, version: str = "1.0.0.0"):
         self.project_root = Path(__file__).parent
-        self.version = version  # Version speichern
+        self.version_input = version  # Original Input (z.B. "1.0.0")
+        
+        # Konvertiere zu Windows Format (X.X.X.X) für Manifest
+        if version.count('.') == 2:
+            self.version_manifest = version + ".0"
+        else:
+            self.version_manifest = version
+        
         self.build_dir = self.project_root / "build" / "msix"
         self.dist_dir = self.project_root / "dist"
         self.assets_dir = self.project_root / "Assets"
-        self.output_dir = self.project_root / "dist" / version  # Versionsspezifischer Ordner!
+        self.output_dir = self.project_root / "dist" / self.version_input  # Ordner mit Original-Version!
         self.makeappx = None  # Wird in check_requirements gesetzt
         
     def check_requirements(self):
@@ -90,7 +97,7 @@ class MSIXBuilder:
             # Format: Version="1.0.0.0"
             manifest_content = re.sub(
                 r'Version="[^"]*"',
-                f'Version="{self.version}"',
+                f'Version="{self.version_manifest}"',
                 manifest_content
             )
             
@@ -99,7 +106,7 @@ class MSIXBuilder:
                 f.write(manifest_content)
             
             print(f"✓ Manifest kopiert und aktualisiert: {manifest_dst}")
-            print(f"  Version gesetzt auf: {self.version}")
+            print(f"  Version gesetzt auf: {self.version_manifest}")
         else:
             print(f"✗ Manifest nicht gefunden: {manifest_src}")
             return False
@@ -206,7 +213,7 @@ class MSIXBuilder:
     def create_msix_package(self):
         """Erstellt das MSIX-Paket mit MakeAppx."""
         print("\n📦 Erstelle MSIX-Paket...")
-        print(f"  Version: {self.version}")
+        print(f"  Version: {self.version_manifest} (Ordner: {self.version_input})")
         
         output_msix = self.output_dir / "TaskSense.msix"
         
@@ -362,18 +369,14 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="Baue TaskSense als MSIX-Paket")
-    parser.add_argument("--version", default="1.0.0.0", help="Versionsnummer (Format: X.X.X.X)")
+    parser.add_argument("--version", default="1.0.0", help="Versionsnummer (Format: X.X.X oder X.X.X.X)")
     parser.add_argument("--sign", action="store_true", help="Digitale Signatur hinzufügen")
     parser.add_argument("--cert", type=str, help="Pfad zum Zertifikat (.pfx)")
     
     args = parser.parse_args()
     
-    # Konvertiere Version zu Windows-Format wenn nötig
-    version = args.version
-    if version.count('.') == 2:  # 1.0.4 -> 1.0.4.0
-        version += ".0"
-    
-    builder = MSIXBuilder(version=version)
+    # Übergebe Version so wie eingegeben - Konvertierung passiert in __init__
+    builder = MSIXBuilder(version=args.version)
     success = builder.build(sign=args.sign, cert_path=args.cert)
     
     sys.exit(0 if success else 1)
