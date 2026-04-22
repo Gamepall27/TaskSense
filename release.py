@@ -64,15 +64,14 @@ class TaskSenseReleaseBuilder:
             self.log(f"Befehl: {' '.join(cmd)}", "info")
         
         try:
+            # Immer ohne capture_output damit PyInstaller direkt ausgeben kann
             result = subprocess.run(
                 cmd,
-                capture_output=not self.verbose,
-                text=True,
                 check=False
             )
             
             if result.returncode != 0:
-                self.log(f"Fehler: {result.stderr if result.stderr else 'Exit Code ' + str(result.returncode)}", "error")
+                self.log(f"Fehler: Exit Code {result.returncode}", "error")
                 return False
             
             return True
@@ -138,6 +137,7 @@ class TaskSenseReleaseBuilder:
         self.log("Starte PyInstaller...")
         
         # Build-Kommand
+        build_path = self.project_root / "build" / "pyinstaller"
         cmd = [
             sys.executable,
             "-m", "PyInstaller",
@@ -150,8 +150,8 @@ class TaskSenseReleaseBuilder:
             "--hidden-import=psutil",
             "--hidden-import=win10toast",
             "--distpath", str(self.dist_dir),
-            "--buildpath", str(self.project_root / "build" / "pyinstaller"),
-            "--workpath", str(self.project_root / "build" / "pyinstaller"),
+            "--workpath", str(build_path),
+            "--specpath", str(build_path),
             str(self.project_root / "main.py")
         ]
         
