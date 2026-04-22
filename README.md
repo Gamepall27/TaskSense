@@ -282,47 +282,48 @@ TaskSense:
 
 TaskSense kann als MSIX-Paket für den Microsoft Store gebaut und hochgeladen werden.
 
-### Schnellstart
+### 🚀 Schnellstart (One Command)
 
 ```bash
-# Einfacher Build (ohne Signatur)
-python build_msix.py
-
-# Mit digitaler Signatur
-python build_msix.py --sign --cert path/to/certificate.pfx
+python release.py
 ```
 
-Oder mit PowerShell:
-```powershell
-.\build_msix.ps1
-.\build_msix.ps1 -Sign -CertPath cert.pfx
+Das ist alles! Fertig: `dist/TaskSense.msix`
+
+Dieser Befehl erledigt ALLES automatisch:
+- ✓ Prüft Voraussetzungen
+- ✓ Baut .exe mit PyInstaller
+- ✓ Erstellt MSIX-Struktur
+- ✓ Paketiert mit MakeAppx
+- ✓ Gibt hochladbare Datei aus
+
+### Optionen
+
+```bash
+# Mit Versionsnummer
+python release.py --version 1.0.1
+
+# Mit digitaler Signatur
+python release.py --sign --cert certs/cert.pfx
+
+# Schneller Build (nutze existierende .exe)
+python release.py --skip-exe
+
+# Mit detaillierter Ausgabe
+python release.py --verbose
 ```
 
 ### Voraussetzungen
 
 1. **Windows SDK** installiert (MakeAppx Tool)
 2. **PyInstaller** installiert: `pip install pyinstaller`
-3. **Optional**: Zertifikat für digitale Signatur (Partner Center generiert dies)
+3. **Optional Pillow**: `pip install pillow` (für Asset-Generierung)
 
-### Detaillierte Anleitung
+### Detaillierte Anleitungen
 
-Siehe [MSIX_BUILD_GUIDE.md](MSIX_BUILD_GUIDE.md) für:
-- Schritt-für-Schritt Setup
-- Microsoft Store Upload
-- Partner Center Konfiguration
-- Zertifizierungsprozess
-- Fehlerbehebung
-
-### Was wird gebaut?
-
-Das `build_msix.py` Skript:
-1. Erstellt .exe mit PyInstaller
-2. Organisiert Dateien im MSIX-Format
-3. Generiert App-Icons (falls nicht vorhanden)
-4. Paketiert mit MakeAppx
-5. Signiert optional
-
-**Ergebnis**: `dist/TaskSense.msix` (ca. 150-200 MB)
+Weitere Informationen:
+- [RELEASE_BUILDER.md](RELEASE_BUILDER.md) - Release Builder Guide
+- [STORE_UPLOAD_CHECKLIST.md](STORE_UPLOAD_CHECKLIST.md) - Upload-Checkliste
 
 ### Erweiterbarkeit
 
