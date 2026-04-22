@@ -6,10 +6,10 @@ Nutzt existierende build.py und build_msix.py - ohne Umwege!
 
 Verwendung:
   python release_simple.py
-  python release_simple.py --version 1.0.1
-  python release_simple.py --sign --cert certs/cert.pfx
+  python release_simple.py --version 1.0.4
+  python release_simple.py --version 1.0.4 --sign --cert certs/cert.pfx
 
-Ergebnis: dist/TaskSense.msix
+Ergebnis: dist/VERSION/TaskSense.msix (z.B. dist/1.0.4.0/TaskSense.msix)
 """
 
 import subprocess
@@ -43,7 +43,7 @@ def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = Non
     print("\n📦 Schritt 2: Baue MSIX-Paket mit MakeAppx...")
     print("-" * 70)
     
-    cmd = [sys.executable, str(project_root / "build_msix.py")]
+    cmd = [sys.executable, str(project_root / "build_msix.py"), "--version", version]
     
     if sign and cert_path:
         cmd.extend(["--sign", "--cert", cert_path])
@@ -62,7 +62,8 @@ def run_release(version: str = "1.0.0", sign: bool = False, cert_path: str = Non
     print("✅ MSIX Release erfolgreich!".center(70))
     print("=" * 70 + "\n")
     
-    msix_path = project_root / "dist" / "TaskSense.msix"
+    # Ausgabepfad: dist/VERSION/TaskSense.msix
+    msix_path = project_root / "dist" / version / "TaskSense.msix"
     if msix_path.exists():
         size = msix_path.stat().st_size / (1024 * 1024)
         print(f"📁 Ausgabe: {msix_path}")
