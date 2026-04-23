@@ -211,6 +211,7 @@ class RuleEditorDialog(QDialog):
     # Mapping für verständlichere Bedingungsbeschreibungen
     CONDITION_TYPES = {
         "app_is": "App ist genau",
+        "app_closed": "App wird geschlossen",
         "app_contains": "App enthält",
         "app_not": "App ist nicht",
         "usage_time_greater": "Nutzungsdauer über (Minuten)",

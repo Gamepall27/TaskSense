@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem, QScrollArea, QPushButton, QHeaderView
 )
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtGui import QColor, QBrush, QFont
 
 from app.utils import format_minutes, create_usage_preview_rows
@@ -18,11 +19,12 @@ class MiniStatsWindow(QWidget):
         self.main_window = main_window
         self.preview_mode = self.main_window.product.statistics_preview_locked
         self.setWindowTitle(f"{self.main_window.product.display_name} - Statistiken")
-        self.setGeometry(1200, 700, 400, 350)
+        self.resize(400, 350)
+        self.setFixedSize(400, 350)
         
-        # Setze Window-Properties für schwebendes Fenster
+        # Frameless Tool Window verhindert Verschieben über die Titelleiste.
         self.setWindowFlags(
-            self.windowFlags() | 
+            Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
             Qt.WindowType.Tool
         )
@@ -33,6 +35,18 @@ class MiniStatsWindow(QWidget):
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self._refresh_stats)
         self.update_timer.start(2000)
+
+    def _move_to_bottom_right(self):
+        """Positioniert das Fenster unten rechts im verfügbaren Bildschirmbereich."""
+        screen = self.screen() or QGuiApplication.primaryScreen()
+        if screen is None:
+            return
+
+        available = screen.availableGeometry()
+        margin = 12
+        x = available.right() - self.width() - margin
+        y = available.bottom() - self.height() - margin
+        self.move(x, y)
     
     def _setup_ui(self):
         """Richtet die UI mit modernem Design ein."""
@@ -170,6 +184,7 @@ class MiniStatsWindow(QWidget):
     def showEvent(self, event):
         """Wird aufgerufen wenn Fenster sichtbar wird."""
         super().showEvent(event)
+        self._move_to_bottom_right()
         self._refresh_stats()
     
     def closeEvent(self, event):

@@ -28,21 +28,28 @@ class UsageTracker:
             process_name: Prozessname
         """
         with self._lock:
-            if app_name is None:
-                return
-            
-            # App-Wechsel erkannt
-            if self.current_app is not None and self.current_app != app_name:
+            previous_app = self.current_app
+            previous_process = self.current_process
+            app_changed = previous_app is not None and previous_app != app_name
+            app_cleared = previous_app is not None and app_name is None
+
+            if app_changed or app_cleared:
                 self._finalize_app_usage()
-                # Starte Grace Period
-                self.app_change_time = datetime.now()
-                self.last_app_before_change = self.current_app
+
+            if app_name is None:
+                self.current_app = None
+                self.current_process = None
+                self.session_start_time = None
+                return previous_app if app_cleared else None, previous_process if app_cleared else None
             
             # Setze neue App
             if self.current_app != app_name:
                 self.current_app = app_name
                 self.current_process = process_name
                 self.session_start_time = datetime.now()
+                return previous_app if app_changed else None, previous_process if app_changed else None
+
+            return None, None
     
     def _finalize_app_usage(self):
         """Speichert die Nutzungszeit der aktuellen App."""
@@ -141,8 +148,16 @@ class RuleEngine:
         """
         self.triggered_callbacks.append(callback)
     
-    def evaluate_rules(self, rules: List[Rule], current_app: Optional[str],
-                      current_process: Optional[str], window_title: str = "") -> List[Rule]:
+    def evaluate_rules(
+        self,
+        rules: List[Rule],
+        current_app: Optional[str],
+        current_process: Optional[str],
+        window_title: str = "",
+        event_type: Optional[str] = None,
+        event_app: Optional[str] = None,
+        event_process: Optional[str] = None,
+    ) -> List[Rule]:
         """
         Evaluiert alle Regeln und gibt die auszulösenden Regeln zurück.
         
@@ -162,7 +177,15 @@ class RuleEngine:
                 continue
             
             # Prüfe, ob Bedingungen erfüllt sind
-            if not self._evaluate_rule(rule, current_app, current_process, window_title):
+            if not self._evaluate_rule(
+                rule,
+                current_app,
+                current_process,
+                window_title,
+                event_type=event_type,
+                event_app=event_app,
+                event_process=event_process,
+            ):
                 continue
             
             # Prüfe Cooldown nur wenn die Bedingung erfüllt ist
@@ -175,8 +198,16 @@ class RuleEngine:
         
         return triggered_rules
     
-    def _evaluate_rule(self, rule: Rule, current_app: Optional[str],
-                      current_process: Optional[str], window_title: str = "") -> bool:
+    def _evaluate_rule(
+        self,
+        rule: Rule,
+        current_app: Optional[str],
+        current_process: Optional[str],
+        window_title: str = "",
+        event_type: Optional[str] = None,
+        event_app: Optional[str] = None,
+        event_process: Optional[str] = None,
+    ) -> bool:
         """
         Evaluiert eine einzelne Regel.
         
@@ -194,7 +225,15 @@ class RuleEngine:
         
         # Alle Bedingungen müssen erfüllt sein (AND-Logik)
         for condition in rule.conditions:
-            result = self._evaluate_condition(condition, current_app, current_process, window_title)
+            result = self._evaluate_condition(
+                condition,
+                current_app,
+                current_process,
+                window_title,
+                event_type=event_type,
+                event_app=event_app,
+                event_process=event_process,
+            )
             if not result:
                 # Debug: Bedingung nicht erfüllt
                 print(f"DEBUG: Regel '{rule.name}' - Bedingung '{condition.condition_type}={condition.value}' nicht erfüllt (current_app={current_app})")
@@ -202,8 +241,16 @@ class RuleEngine:
         
         return True
     
-    def _evaluate_condition(self, condition: RuleCondition, current_app: Optional[str],
-                           current_process: Optional[str], window_title: str = "") -> bool:
+    def _evaluate_condition(
+        self,
+        condition: RuleCondition,
+        current_app: Optional[str],
+        current_process: Optional[str],
+        window_title: str = "",
+        event_type: Optional[str] = None,
+        event_app: Optional[str] = None,
+        event_process: Optional[str] = None,
+    ) -> bool:
         """
         Evaluiert eine einzelne Bedingung.
         
@@ -221,6 +268,10 @@ class RuleEngine:
         if condition_type == "app_is":
             # App muss genau sein
             return current_app == condition.value
+
+        elif condition_type == "app_closed":
+            # App wurde geschlossen und der zugrundeliegende Prozess läuft nicht mehr
+            return event_type == "app_closed" and event_app == condition.value
         
         elif condition_type == "app_contains":
             # App muss enthalten sein (case-insensitive)

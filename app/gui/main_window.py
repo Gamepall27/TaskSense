@@ -5,6 +5,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon, QAction
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 import os
+import psutil
+from typing import Dict, Tuple, Optional
 
 from app import __version__
 from app.core import WindowTracker, UsageTracker, RuleEngine
@@ -42,6 +44,8 @@ class MainWindow(QMainWindow):
         
         # Flag für echtes Beenden (nicht nur Minimieren)
         self._really_closing = False
+        self._tray_click_timer = None
+        self._pending_closed_apps: Dict[str, Tuple[str, str]] = {}
         
         # Initialisiere Core-Komponenten
         self.storage_manager = StorageManager()
@@ -104,15 +108,19 @@ class MainWindow(QMainWindow):
         exit_action = QAction("Beenden", self)
         exit_action.triggered.connect(self._quit_app)
         file_menu.addAction(exit_action)
-        
+
         help_menu = menubar.addMenu("Hilfe")
         about_action = QAction(f"Über {self.product.display_name}", self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
-    
+        
     def _setup_tray(self):
         """Richtet das System-Tray ein."""
         self.tray_icon = QSystemTrayIcon(self)
+        self._tray_click_timer = QTimer(self)
+        self._tray_click_timer.setSingleShot(True)
+        self._tray_click_timer.setInterval(250)
+        self._tray_click_timer.timeout.connect(self._toggle_mini_stats_window)
         
         # Setze Icon für Tray
         tray_icon = create_app_icon(32)
@@ -137,25 +145,24 @@ class MainWindow(QMainWindow):
         
         # Verbinde Tray-Icon-Klicks
         self.tray_icon.activated.connect(self._on_tray_activated)
+
+    def _toggle_mini_stats_window(self):
+        """Zeigt oder versteckt das Mini-Statistik-Fenster."""
+        if self.mini_stats_window.isVisible():
+            self.mini_stats_window.hide()
+        else:
+            self.mini_stats_window.show()
     
     def _on_tray_activated(self, reason):
         """Callback für Tray-Icon Aktivierung."""
         from PyQt6.QtWidgets import QSystemTrayIcon
         
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            # Linksklick: Mini-Fenster anzeigen
-            if self.mini_stats_window.isVisible():
-                self.mini_stats_window.hide()
-            else:
-                self.mini_stats_window.show()
-                self.mini_stats_window.activateWindow()
+            # Leicht verzögern, damit ein Doppelklick kein Fenster öffnet.
+            self._tray_click_timer.start()
         elif reason == QSystemTrayIcon.ActivationReason.DoubleClick:
-            # Doppelklick: Hauptfenster anzeigen/verstecken
-            if self.isVisible():
-                self.hide()
-            else:
-                self.showNormal()
-                self.activateWindow()
+            if self._tray_click_timer.isActive():
+                self._tray_click_timer.stop()
     
     def _quit_app(self):
         """Beendet die Anwendung."""
@@ -252,15 +259,17 @@ class MainWindow(QMainWindow):
         """Verfolgt die aktive App und evaluiert Regeln."""
         # Hole aktive App
         app_name, process_name, window_title = self.window_tracker.get_active_window()
-        
+
+        previous_app, previous_process = self.usage_tracker.update_active_app(app_name, process_name)
+        if previous_app and previous_process:
+            self._pending_closed_apps[previous_process.lower()] = (previous_app, previous_process)
+        self._flush_closed_app_events(app_name, process_name, window_title)
+
         if app_name is None:
             return
-        
+
         print(f"DEBUG _track_and_evaluate: App={app_name}, Process={process_name}")
-        
-        # Update Usage Tracker
-        self.usage_tracker.update_active_app(app_name, process_name)
-        
+
         # Hole Nutzungsdauer
         usage_minutes = self.usage_tracker.get_app_usage_minutes(app_name, scope="session")
         
@@ -275,6 +284,48 @@ class MainWindow(QMainWindow):
         for rule in triggered_rules:
             self.rule_triggered.emit(rule, "Regel ausgelöst")
             self._trigger_notification(rule)
+
+    def _flush_closed_app_events(
+        self,
+        current_app: Optional[str],
+        current_process: Optional[str],
+        window_title: str,
+    ):
+        """Prüft gemerkte Apps auf tatsächliches Beenden und löst Regeln aus."""
+        for process_key, (app_name, process_name) in list(self._pending_closed_apps.items()):
+            if self._is_process_running(process_name):
+                continue
+
+            triggered_rules = self.rule_engine.evaluate_rules(
+                self.rules,
+                current_app,
+                current_process,
+                window_title,
+                event_type="app_closed",
+                event_app=app_name,
+                event_process=process_name,
+            )
+
+            for rule in triggered_rules:
+                self.rule_triggered.emit(rule, "App wurde geschlossen")
+                self._trigger_notification(rule)
+
+            self._pending_closed_apps.pop(process_key, None)
+
+    def _is_process_running(self, process_name: str) -> bool:
+        """Prüft, ob derzeit noch ein Prozess mit diesem Namen läuft."""
+        normalized_name = (process_name or "").lower()
+        if not normalized_name:
+            return False
+
+        for process in psutil.process_iter(["name"]):
+            try:
+                if (process.info.get("name") or "").lower() == normalized_name:
+                    return True
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+
+        return False
     
     def _trigger_notification(self, rule: Rule):
         """Triggert eine Benachrichtigung für eine Regel."""
