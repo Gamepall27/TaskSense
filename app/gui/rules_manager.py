@@ -207,8 +207,7 @@ class RulesManagerWidget(QWidget):
 
 class RuleEditorDialog(QDialog):
     """Dialog zum Editieren einer Regel."""
-    
-    # Mapping für verständlichere Bedingungsbeschreibungen
+
     CONDITION_TYPES = {
         "app_is": "App ist genau",
         "app_closed": "App wird geschlossen",
@@ -219,68 +218,101 @@ class RuleEditorDialog(QDialog):
         "time_before": "Vor Uhrzeit (HH:MM)",
         "weekday": "Am Wochentag",
     }
-    
-    # Reverse mapping für speichern
     CONDITION_TYPES_REVERSE = {v: k for k, v in CONDITION_TYPES.items()}
-    
+    CUSTOM_VALUE_LABEL = "Eigene Eingabe"
+    COMMON_APPS = [
+        "Chrome",
+        "Firefox",
+        "Edge",
+        "VS Code",
+        "Excel",
+        "Word",
+        "PowerPoint",
+        "Outlook",
+        "Slack",
+        "Teams",
+        "Zoom",
+        "VLC",
+        "Spotify",
+        "Discord",
+        "Telegram",
+        "Notion",
+    ]
+    WEEKDAY_OPTIONS = [
+        ("Montag", "Monday"),
+        ("Dienstag", "Tuesday"),
+        ("Mittwoch", "Wednesday"),
+        ("Donnerstag", "Thursday"),
+        ("Freitag", "Friday"),
+        ("Samstag", "Saturday"),
+        ("Sonntag", "Sunday"),
+    ]
+    TIME_OPTIONS = ["06:00", "08:00", "09:00", "12:00", "17:00", "18:00", "20:00", "22:00", "23:00"]
+    USAGE_TIME_OPTIONS = ["15", "30", "45", "60", "90", "120", "180", "240"]
+
     def __init__(self, rule=None, main_window=None):
         """Initialisiert den RuleEditorDialog."""
         super().__init__()
         from app.models import Rule
         self.rule = rule if rule is not None else Rule()
         self.main_window = main_window
-        
+
         self.setWindowTitle("Regel bearbeiten" if rule and rule.rule_id else "Neue Regel")
         self.setGeometry(200, 200, 500, 800)
-        
+
         self._setup_ui()
+        self._on_condition_type_changed(self.condition_type_combo.currentText())
         self._load_rule_data()
-    
+
     def _setup_ui(self):
         """Richtet die UI ein."""
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
-        
-        # Name
+
         layout.addWidget(QLabel("Regelname:"))
         self.name_input = QLineEdit()
         layout.addWidget(self.name_input)
-        
-        # Bedingung
+
         layout.addWidget(QLabel("Bedingung:"))
         self.condition_type_combo = QComboBox()
         self.condition_type_combo.addItems(self.CONDITION_TYPES.values())
+        self.condition_type_combo.currentTextChanged.connect(self._on_condition_type_changed)
         layout.addWidget(self.condition_type_combo)
-        
+
         layout.addWidget(QLabel("Bedingungswert:"))
+        self.condition_value_combo = QComboBox()
+        self.condition_value_combo.currentTextChanged.connect(self._on_condition_value_changed)
+        layout.addWidget(self.condition_value_combo)
+
+        self.custom_value_label = QLabel("Eigener Wert:")
+        self.custom_value_label.setVisible(False)
+        layout.addWidget(self.custom_value_label)
+
         self.condition_value_input = QLineEdit()
+        self.condition_value_input.setVisible(False)
         layout.addWidget(self.condition_value_input)
-        
-        # Aktion
+
         layout.addWidget(QLabel("Notifikations-Titel:"))
         self.action_title_input = QLineEdit()
         layout.addWidget(self.action_title_input)
-        
+
         layout.addWidget(QLabel("Notifikations-Text:"))
         self.action_message_input = QLineEdit()
         layout.addWidget(self.action_message_input)
-        
-        # Cooldown
+
         layout.addWidget(QLabel("Cooldown (Minuten):"))
         self.cooldown_spin = QSpinBox()
         self.cooldown_spin.setMinimum(1)
         self.cooldown_spin.setMaximum(1440)
         self.cooldown_spin.setValue(15)
         layout.addWidget(self.cooldown_spin)
-        
-        # Wiederholungsmuster
+
         layout.addWidget(QLabel("Wiederholung:"))
         self.recurring_combo = QComboBox()
         self.recurring_combo.addItems(["Einmalig", "Täglich", "Wöchentlich", "Bestimmte Wochentage"])
         self.recurring_combo.currentTextChanged.connect(self._on_recurring_changed)
         layout.addWidget(self.recurring_combo)
-        
-        # Wochentags-Auswahl (nur sichtbar bei "Bestimmte Wochentage")
+
         self.weekdays_group = QGroupBox("Wochentage auswählen")
         weekdays_layout = QVBoxLayout()
         self.weekday_checks = {}
@@ -292,15 +324,13 @@ class RuleEditorDialog(QDialog):
         self.weekdays_group.setLayout(weekdays_layout)
         self.weekdays_group.setVisible(False)
         layout.addWidget(self.weekdays_group)
-        
-        # Enabled
+
         self.enabled_check = CustomCheckBox("Regel aktiviert")
         self.enabled_check.setChecked(True)
         layout.addWidget(self.enabled_check)
-        
+
         layout.addStretch()
-        
-        # Buttons
+
         button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok |
             QDialogButtonBox.StandardButton.Cancel
@@ -308,66 +338,147 @@ class RuleEditorDialog(QDialog):
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
-    
+
     def _on_recurring_changed(self, text: str):
         """Zeigt/versteckt die Wochentags-Auswahl basierend auf dem Wiederholungsmuster."""
         self.weekdays_group.setVisible(text == "Bestimmte Wochentage")
-    
+
+    def _on_condition_type_changed(self, display_text: str):
+        """Aktualisiert Vorschlagswerte passend zum gewählten Bedingungstyp."""
+        technical_name = self.CONDITION_TYPES_REVERSE.get(display_text, display_text)
+        options = self._get_condition_value_options(technical_name)
+
+        self.condition_value_combo.blockSignals(True)
+        self.condition_value_combo.clear()
+        for label, value in options:
+            self.condition_value_combo.addItem(label, value)
+        self.condition_value_combo.blockSignals(False)
+
+        self.condition_value_input.clear()
+        self._set_custom_value_visible(False)
+        if self.condition_value_combo.count() > 0:
+            self.condition_value_combo.setCurrentIndex(0)
+        self._on_condition_value_changed(self.condition_value_combo.currentText())
+
+    def _on_condition_value_changed(self, selected_text: str):
+        """Blendet das Freitextfeld nur für eigene Werte ein."""
+        selected_value = self.condition_value_combo.currentData()
+        use_custom = selected_value is None or selected_text == self.CUSTOM_VALUE_LABEL
+        self._set_custom_value_visible(use_custom)
+        if use_custom:
+            self.condition_value_input.setFocus()
+
+    def _set_custom_value_visible(self, visible: bool):
+        """Steuert die Sichtbarkeit des Freitextfelds."""
+        self.custom_value_label.setVisible(visible)
+        self.condition_value_input.setVisible(visible)
+
+    def _get_condition_value_options(self, condition_type: str):
+        """Liefert Vorschlagswerte für den gewählten Bedingungstyp."""
+        if condition_type in {"app_is", "app_closed", "app_contains", "app_not"}:
+            options = [(app_name, app_name) for app_name in self._get_app_suggestions()]
+        elif condition_type == "weekday":
+            options = self.WEEKDAY_OPTIONS[:]
+        elif condition_type in {"time_after", "time_before"}:
+            options = [(time_value, time_value) for time_value in self.TIME_OPTIONS]
+        elif condition_type == "usage_time_greater":
+            options = [(f"{minutes} Minuten", minutes) for minutes in self.USAGE_TIME_OPTIONS]
+        else:
+            options = []
+
+        options.append((self.CUSTOM_VALUE_LABEL, None))
+        return options
+
+    def _get_app_suggestions(self):
+        """Sammelt passende App-Vorschläge aus bekannten und lokalen Daten."""
+        app_names = set(self.COMMON_APPS)
+
+        try:
+            app_names.update(self.main_window.usage_tracker.get_daily_stats().keys())
+        except Exception:
+            pass
+
+        try:
+            app_names.update(self.main_window.storage_manager.get_all_time_stats().keys())
+        except Exception:
+            pass
+
+        for rule in getattr(self.main_window, "rules", []):
+            for condition in rule.conditions:
+                if condition.condition_type in {"app_is", "app_closed", "app_contains", "app_not"} and condition.value:
+                    app_names.add(condition.value)
+
+        return sorted(app_name for app_name in app_names if app_name)
+
+    def _set_condition_value(self, condition_value: str):
+        """Setzt den gespeicherten Regelwert in Dropdown oder Freitextfeld."""
+        index = self.condition_value_combo.findData(condition_value)
+        if index >= 0:
+            self.condition_value_combo.setCurrentIndex(index)
+            self.condition_value_input.clear()
+            self._set_custom_value_visible(False)
+            return
+
+        custom_index = self.condition_value_combo.findText(self.CUSTOM_VALUE_LABEL)
+        if custom_index >= 0:
+            self.condition_value_combo.setCurrentIndex(custom_index)
+        self.condition_value_input.setText(condition_value)
+        self._set_custom_value_visible(True)
+
+    def _get_selected_condition_value(self) -> str:
+        """Liefert den finalen Regelwert aus Dropdown oder Freitext."""
+        selected_value = self.condition_value_combo.currentData()
+        if selected_value is None:
+            return self.condition_value_input.text().strip()
+        return str(selected_value).strip()
+
     def _load_rule_data(self):
         """Ladet die Daten der Regel in die UI."""
         self.name_input.setText(self.rule.name)
-        
+
         if self.rule.conditions:
             cond = self.rule.conditions[0]
-            # Konvertiere den technischen Namen zum Anzeigenamen
             display_text = self.CONDITION_TYPES.get(cond.condition_type, cond.condition_type)
             self.condition_type_combo.setCurrentText(display_text)
-            self.condition_value_input.setText(cond.value)
-        
+            self._set_condition_value(cond.value)
+
         if self.rule.actions:
             action = self.rule.actions[0]
             self.action_title_input.setText(action.title)
             self.action_message_input.setText(action.message)
-        
+
         self.cooldown_spin.setValue(self.rule.cooldown_minutes)
         self.enabled_check.setChecked(self.rule.enabled)
-        
-        # Lade Recurring-Muster
+
         recurring_map = {"once": "Einmalig", "daily": "Täglich", "weekly": "Wöchentlich", "weekly_specific": "Bestimmte Wochentage"}
         self.recurring_combo.setCurrentText(recurring_map.get(self.rule.recurring_pattern, "Einmalig"))
-        
-        # Lade Wochentage
+
         for i, check in self.weekday_checks.items():
             check.setChecked(i in self.rule.recurring_weekdays)
-    
+
     def get_rule(self) -> Rule:
         """Gibt die bearbeitete Regel zurück."""
         self.rule.name = self.name_input.text()
         self.rule.cooldown_minutes = self.cooldown_spin.value()
         self.rule.enabled = self.enabled_check.isChecked()
-        
-        # Bedingung - konvertiere Anzeigenamen zurück zu technischem Namen
+
         display_text = self.condition_type_combo.currentText()
         technical_name = self.CONDITION_TYPES_REVERSE.get(display_text, display_text)
-        
+
         condition = RuleCondition(
             condition_type=technical_name,
-            value=self.condition_value_input.text(),
+            value=self._get_selected_condition_value(),
         )
         self.rule.conditions = [condition]
-        
-        # Aktion
+
         action = RuleAction(
             title=self.action_title_input.text(),
             message=self.action_message_input.text(),
         )
         self.rule.actions = [action]
-        
-        # Recurring-Muster
+
         recurring_map = {"Einmalig": "once", "Täglich": "daily", "Wöchentlich": "weekly", "Bestimmte Wochentage": "weekly_specific"}
         self.rule.recurring_pattern = recurring_map.get(self.recurring_combo.currentText(), "once")
-        
-        # Wochentage
         self.rule.recurring_weekdays = [i for i, check in self.weekday_checks.items() if check.isChecked()]
-        
+
         return self.rule
