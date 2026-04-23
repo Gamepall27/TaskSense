@@ -9,6 +9,7 @@ class Settings:
     
     tracking_interval_seconds: int = 2
     notifications_enabled: bool = True
+    notification_mode: str = "popup"  # popup, windows
     start_minimized: bool = True
     theme: str = "light"  # light, dark
     check_for_updates: bool = True
@@ -21,6 +22,7 @@ class Settings:
         return {
             'tracking_interval_seconds': self.tracking_interval_seconds,
             'notifications_enabled': self.notifications_enabled,
+            'notification_mode': self.notification_mode,
             'start_minimized': self.start_minimized,
             'theme': self.theme,
             'check_for_updates': self.check_for_updates,
@@ -35,6 +37,7 @@ class Settings:
         return cls(
             tracking_interval_seconds=data.get('tracking_interval_seconds', 2),
             notifications_enabled=data.get('notifications_enabled', True),
+            notification_mode=data.get('notification_mode', 'popup'),
             start_minimized=data.get('start_minimized', True),
             theme=data.get('theme', 'light'),
             check_for_updates=data.get('check_for_updates', True),

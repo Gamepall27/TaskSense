@@ -11,6 +11,11 @@ from app.gui.custom_widgets import CustomCheckBox
 
 class SettingsWidget(QWidget):
     """Widget fur Einstellungen."""
+
+    NOTIFICATION_MODE_OPTIONS = {
+        "Popup-Fenster": "popup",
+        "Windows-Benachrichtigung": "windows",
+    }
     
     def __init__(self, main_window):
         """Initialisiert das Einstellungs-Widget."""
@@ -68,6 +73,11 @@ class SettingsWidget(QWidget):
         self.notifications_check = CustomCheckBox("Benachrichtigungen aktiviert")
         self.notifications_check.setChecked(True)
         notification_layout.addWidget(self.notifications_check)
+
+        notification_layout.addWidget(QLabel("Benachrichtigungsart:"))
+        self.notification_mode_combo = QComboBox()
+        self.notification_mode_combo.addItems(self.NOTIFICATION_MODE_OPTIONS.keys())
+        notification_layout.addWidget(self.notification_mode_combo)
         
         notification_group.setLayout(notification_layout)
         layout.addWidget(notification_group)
@@ -118,6 +128,14 @@ class SettingsWidget(QWidget):
         
         self.interval_spin.setValue(settings.tracking_interval_seconds)
         self.notifications_check.setChecked(settings.notifications_enabled)
+        selected_mode = next(
+            (
+                label for label, value in self.NOTIFICATION_MODE_OPTIONS.items()
+                if value == settings.notification_mode
+            ),
+            "Popup-Fenster",
+        )
+        self.notification_mode_combo.setCurrentText(selected_mode)
         self.theme_combo.setCurrentText(settings.theme.capitalize())
         self.start_minimized_check.setChecked(settings.start_minimized)
     
@@ -126,6 +144,7 @@ class SettingsWidget(QWidget):
         settings = Settings(
             tracking_interval_seconds=self.interval_spin.value(),
             notifications_enabled=self.notifications_check.isChecked(),
+            notification_mode=self.NOTIFICATION_MODE_OPTIONS[self.notification_mode_combo.currentText()],
             theme=self.theme_combo.currentText().lower(),
             start_minimized=self.start_minimized_check.isChecked(),
         )

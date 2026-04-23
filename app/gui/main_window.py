@@ -69,6 +69,7 @@ class MainWindow(QMainWindow):
         
         # Wende Einstellungen an
         self.notification_service.set_enabled(self.settings.notifications_enabled)
+        self.notification_service.set_mode(self.settings.notification_mode)
         self.apply_theme(self.settings.theme)
         
         # Starte minimiert wenn Einstellung aktiv ist
@@ -418,6 +419,7 @@ class MainWindow(QMainWindow):
         self.settings = settings
         self.storage_manager.save_settings(settings)
         self.notification_service.set_enabled(settings.notifications_enabled)
+        self.notification_service.set_mode(settings.notification_mode)
     
     def apply_theme(self, theme: str):
         """Wendet ein modernes, professionelles Theme an."""
