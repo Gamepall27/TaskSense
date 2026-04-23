@@ -45,7 +45,8 @@ class MainWindow(QMainWindow):
         # Flag für echtes Beenden (nicht nur Minimieren)
         self._really_closing = False
         self._tray_click_timer = None
-        self._pending_closed_apps: Dict[str, Tuple[str, str]] = {}
+        self._pending_closed_apps: Dict[str, Tuple[str, str, Optional[int]]] = {}
+        self._last_window_handle: Optional[int] = None
         
         # Initialisiere Core-Komponenten
         self.storage_manager = StorageManager()
@@ -258,12 +259,18 @@ class MainWindow(QMainWindow):
     def _track_and_evaluate(self):
         """Verfolgt die aktive App und evaluiert Regeln."""
         # Hole aktive App
-        app_name, process_name, window_title = self.window_tracker.get_active_window()
+        app_name, process_name, window_title, window_handle = self.window_tracker.get_active_window_info()
 
         previous_app, previous_process = self.usage_tracker.update_active_app(app_name, process_name)
         if previous_app and previous_process:
-            self._pending_closed_apps[previous_process.lower()] = (previous_app, previous_process)
+            previous_handle = self._last_window_handle
+            self._pending_closed_apps[previous_process.lower()] = (
+                previous_app,
+                previous_process,
+                previous_handle,
+            )
         self._flush_closed_app_events(app_name, process_name, window_title)
+        self._last_window_handle = window_handle
 
         if app_name is None:
             return
@@ -292,8 +299,11 @@ class MainWindow(QMainWindow):
         window_title: str,
     ):
         """Prüft gemerkte Apps auf tatsächliches Beenden und löst Regeln aus."""
-        for process_key, (app_name, process_name) in list(self._pending_closed_apps.items()):
-            if self._is_process_running(process_name):
+        for process_key, (app_name, process_name, window_handle) in list(self._pending_closed_apps.items()):
+            window_closed = window_handle is not None and not self.window_tracker.is_window_valid(window_handle)
+            process_closed = not self._is_process_running(process_name)
+
+            if not window_closed and not process_closed:
                 continue
 
             triggered_rules = self.rule_engine.evaluate_rules(

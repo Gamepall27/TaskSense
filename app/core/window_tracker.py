@@ -52,6 +52,44 @@ class WindowTracker:
         except Exception as e:
             print(f"Fehler beim Auslesen des aktiven Fensters: {e}")
             return None, None, None
+
+    def get_active_window_info(self) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[int]]:
+        """
+        Gibt die aktive App inklusive Fenster-Handle zurück.
+
+        Returns:
+            Tuple[app_name, process_name, window_title, hwnd]
+        """
+        try:
+            hwnd = self.user32.GetForegroundWindow()
+            if hwnd == 0:
+                return None, None, None, None
+
+            pid = wintypes.DWORD()
+            self.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+
+            try:
+                process = psutil.Process(pid.value)
+                process_name = process.name()
+                app_name = self._extract_app_name(process_name)
+                window_title = self._get_window_title(hwnd)
+                return app_name, process_name, window_title, int(hwnd)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                return None, None, None, None
+
+        except Exception as e:
+            print(f"Fehler beim Auslesen des aktiven Fensters: {e}")
+            return None, None, None, None
+
+    def is_window_valid(self, hwnd: Optional[int]) -> bool:
+        """Prüft, ob ein Fenster-Handle noch gültig ist."""
+        if not hwnd:
+            return False
+
+        try:
+            return bool(self.user32.IsWindow(hwnd))
+        except Exception:
+            return False
     
     def _extract_app_name(self, process_name: str) -> str:
         """
