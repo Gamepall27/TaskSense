@@ -1,4 +1,4 @@
-"""Logging-Hilfsfunktionen für SmartCue."""
+"""Logging-Hilfsfunktionen für TaskSense."""
 import logging
 import os
 from datetime import datetime
@@ -17,7 +17,7 @@ def setup_logging(log_dir: str = "data", log_level: str = "INFO") -> logging.Log
     """
     os.makedirs(log_dir, exist_ok=True)
     
-    logger = logging.getLogger("SmartCue")
+    logger = logging.getLogger("TaskSense")
     
     # Clear existing handlers
     logger.handlers.clear()
@@ -33,7 +33,7 @@ def setup_logging(log_dir: str = "data", log_level: str = "INFO") -> logging.Log
     )
     
     # File handler
-    log_file = os.path.join(log_dir, f"smartcue_{datetime.now().strftime('%Y%m%d')}.log")
+    log_file = os.path.join(log_dir, f"tasksense_{datetime.now().strftime('%Y%m%d')}.log")
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(level)
     file_handler.setFormatter(formatter)
@@ -51,5 +51,5 @@ def setup_logging(log_dir: str = "data", log_level: str = "INFO") -> logging.Log
 
 
 def get_logger() -> logging.Logger:
-    """Gibt die Logger-Instanz für SmartCue zurück."""
-    return logging.getLogger("SmartCue")
+    """Gibt die Logger-Instanz für TaskSense zurück."""
+    return logging.getLogger("TaskSense")

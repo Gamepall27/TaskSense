@@ -1,8 +1,8 @@
-# SmartCue Entwickler-Dokumentation
+# TaskSense Entwickler-Dokumentation
 
 ## Überblick
 
-SmartCue ist ein intelligentes Windows-Reminder-Tool, das on Basis von Fenster-Tracking und Nutzungsdauer Smart-Rules auslöst.
+TaskSense ist ein intelligentes Windows-Reminder-Tool, das on Basis von Fenster-Tracking und Nutzungsdauer Smart-Rules auslöst.
 
 ## Architektur
 
@@ -116,7 +116,7 @@ StorageManager(data_dir)
    └─ load_daily_stats(date_str) -> DailyUsageStats
 ```
 
-## Extending SmartCue
+## Extending TaskSense
 
 ### Neue Bedingungstypen hinzufügen
 
@@ -269,8 +269,8 @@ class TestRuleEngine(unittest.TestCase):
 python build.py
 ```
 
-Dies erstellt eine standalone .exe unter `dist/SmartCue.exe`.
+Dies erstellt eine standalone .exe unter `dist/TaskSense.exe`.
 
 ## Support
 
-Für Bugs oder Features: Schreiben Sie einen Issue mit Logs aus `data/smartcue_*.log`.
+Für Bugs oder Features: Schreiben Sie einen Issue mit Logs aus `data/tasksense_*.log`.

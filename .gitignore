@@ -69,6 +69,7 @@ data/reminders.json
 data/rules.json
 data/settings.json
 data/statistics/
+data/tasksense.db
 
 # Logs
 *.log

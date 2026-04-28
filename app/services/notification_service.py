@@ -13,6 +13,7 @@ class NotificationService:
     def __init__(self):
         """Initialisiert den NotificationService."""
         self.enabled = True
+        self.mode = "popup"
         self._toaster = None
         self._try_import_toaster()
     
@@ -44,25 +45,36 @@ class NotificationService:
             return False
         
         try:
-            # Methode 1: Versuche win10toast zu verwenden
-            if self._toaster:
-                try:
-                    self._toaster.show_toast(
-                        title,
-                        message,
-                        duration=max(1, timeout_ms // 1000),
-                        threaded=True
-                    )
+            if self.mode == "windows":
+                if self._show_via_toast(title, message, timeout_ms):
                     return True
-                except Exception as e:
-                    print(f"win10toast fehlgeschlagen: {e}")
-            
-            # Methode 2: Zeige MessageBox (garantiert zu funktionieren)
+
+                # Fallback falls Windows-Toast nicht verfügbar ist
+                self._show_via_messagebox(title, message)
+                return True
+
             self._show_via_messagebox(title, message)
             return True
             
         except Exception as e:
             print(f"Fehler beim Anzeigen der Benachrichtigung: {e}")
+            return False
+
+    def _show_via_toast(self, title: str, message: str, timeout_ms: int) -> bool:
+        """Zeigt eine native Windows-Benachrichtigung an."""
+        if not self._toaster:
+            return False
+
+        try:
+            self._toaster.show_toast(
+                title,
+                message,
+                duration=max(1, timeout_ms // 1000),
+                threaded=True
+            )
+            return True
+        except Exception as e:
+            print(f"win10toast fehlgeschlagen: {e}")
             return False
     
     def _show_via_messagebox(self, title: str, message: str):
@@ -108,6 +120,10 @@ class NotificationService:
     def set_enabled(self, enabled: bool):
         """Aktiviert oder deaktiviert Benachrichtigungen."""
         self.enabled = enabled
+
+    def set_mode(self, mode: str):
+        """Setzt den Benachrichtigungsmodus."""
+        self.mode = mode if mode in {"popup", "windows"} else "popup"
     
     def is_enabled(self) -> bool:
         """Gibt an, ob Benachrichtigungen aktiviert sind."""
